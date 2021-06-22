@@ -37,6 +37,7 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.set("trust proxy", 1);
 
+/*
 if (process.env.ENVIRONMENT === "prod")
   app.use(function (req, res, next) {
     console.log(req.headers.host);
@@ -56,7 +57,7 @@ if (process.env.ENVIRONMENT === "prod")
         .status(301)
         .redirect("https://www." + process.env.HOST + req.url);
     else return next();
-  });
+  });*/
 
 //-- Express Session --//
 app.use(
