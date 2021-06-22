@@ -60,12 +60,13 @@ if (process.env.ENVIRONMENT === "prod")
   });*/
 
 //-- Express Session --//
+/*
 app.use(
   session({
     /* store: new MongoStore({
       mongooseConnection: mongoose.connection,
       ttl: 365 * 24 * 60 * 60,
-    }),*/
+    }),
     name: "prediction",
     secret: process.env.SESSION_SECRET,
     resave: true,
@@ -79,7 +80,7 @@ app.use(
     }, //secure = true (or auto) requires https else it wont work
     //sameSite: "Lax",
   })
-);
+);*/
 
 // Body-Parser
 app.use(express.urlencoded({ extended: true, limit: 25000000 }));
