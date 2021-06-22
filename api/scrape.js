@@ -17,7 +17,7 @@ const scrapePage = async () => {
   const browser = await puppeteer.launch(options);
   const page = await browser.newPage();
   await page.goto("https://pancakeswap.finance/prediction");
-  await page.waitForSelector(".swiper-slide-active");
+  await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
   page.waitForTimeout(1000);
 
   while (true) {
