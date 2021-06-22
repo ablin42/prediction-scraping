@@ -37,6 +37,7 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.set("trust proxy", 1);
 
+/*
 if (process.env.ENVIRONMENT === "prod")
   app.use(function (req, res, next) {
     console.log(req.headers.host);
@@ -56,15 +57,16 @@ if (process.env.ENVIRONMENT === "prod")
         .status(301)
         .redirect("https://www." + process.env.HOST + req.url);
     else return next();
-  });
+  });*/
 
 //-- Express Session --//
+/*
 app.use(
   session({
     /* store: new MongoStore({
       mongooseConnection: mongoose.connection,
       ttl: 365 * 24 * 60 * 60,
-    }),*/
+    }),
     name: "prediction",
     secret: process.env.SESSION_SECRET,
     resave: true,
@@ -78,7 +80,7 @@ app.use(
     }, //secure = true (or auto) requires https else it wont work
     //sameSite: "Lax",
   })
-);
+);*/
 
 // Body-Parser
 app.use(express.urlencoded({ extended: true, limit: 25000000 }));
@@ -170,10 +172,14 @@ app.post("/report-violation", (req, res) => {
 const scrapePage = async () => {
   const loggedEntries = [];
   let lastLength = 0;
-  const browser = await puppeteer.launch({ headless: true });
+  const options = {
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  };
+  console.log(options);
+  const browser = await puppeteer.launch(options);
   const page = await browser.newPage();
   await page.goto("https://pancakeswap.finance/prediction");
-  await page.waitForSelector(".swiper-slide-active");
+  await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
   page.waitForTimeout(1000);
 
   while (true) {

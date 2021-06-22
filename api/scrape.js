@@ -10,10 +10,14 @@ const Prediction = require("../models/Prediction");
 const scrapePage = async () => {
   const loggedEntries = [];
   let lastLength = 0;
-  const browser = await puppeteer.launch({ headless: true });
+  const options = {
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  };
+  console.log(options);
+  const browser = await puppeteer.launch(options);
   const page = await browser.newPage();
   await page.goto("https://pancakeswap.finance/prediction");
-  await page.waitForSelector(".swiper-slide-active");
+  await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
   page.waitForTimeout(1000);
 
   while (true) {
