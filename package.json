@@ -1,0 +1,35 @@
+{
+  "name": "prediction-data",
+  "version": "1.0.0",
+  "description": "A script to scrape pancakeswap predictions data",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ablin42/prediction-data.git"
+  },
+  "author": "ablin42",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ablin42/prediction-data/issues"
+  },
+  "homepage": "https://github.com/ablin42/prediction-data#readme",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "cheerio": "^1.0.0-rc.10",
+    "connect-mongo": "^4.4.1",
+    "dotenv": "^10.0.0",
+    "ejs": "^3.1.6",
+    "express": "^4.17.1",
+    "express-flash": "0.0.2",
+    "express-sanitizer": "^1.0.6",
+    "express-session": "^1.17.2",
+    "helmet": "^4.6.0",
+    "mongo-sanitize": "^1.1.0",
+    "mongoose": "^5.12.14",
+    "parse-error": "^0.2.0",
+    "puppeteer": "^10.0.0"
+  }
+}
