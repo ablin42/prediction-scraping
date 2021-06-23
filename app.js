@@ -38,51 +38,6 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.set("trust proxy", 1);
 
-/*
-if (process.env.ENVIRONMENT === "prod")
-  app.use(function (req, res, next) {
-    console.log(req.headers.host);
-    if (req.protocol == "http")
-      return res.redirect("https://www." + req.headers.host + req.url);
-    else return next();
-  });
-
-if (process.env.ENVIRONMENT === "prod")
-  app.use(function (req, res, next) {
-    console.log(req.headers.host);
-    if (
-      req.headers.host === "ablin42.herokuapp.com" ||
-      req.headers.host === "ablin.dev"
-    )
-      return res
-        .status(301)
-        .redirect("https://www." + process.env.HOST + req.url);
-    else return next();
-  });*/
-
-//-- Express Session --//
-/*
-app.use(
-  session({
-    /* store: new MongoStore({
-      mongooseConnection: mongoose.connection,
-      ttl: 365 * 24 * 60 * 60,
-    }),
-    name: "prediction",
-    secret: process.env.SESSION_SECRET,
-    resave: true,
-    //proxy: true,
-    saveUninitialized: false,
-    cookie: {
-      path: "/",
-      maxAge: 14 * 24 * 60 * 60 * 1000,
-      httpOnly: false,
-      secure: false,
-    }, //secure = true (or auto) requires https else it wont work
-    //sameSite: "Lax",
-  })
-);*/
-
 // Body-Parser
 app.use(express.urlencoded({ extended: true, limit: 25000000 }));
 app.use(
@@ -94,61 +49,18 @@ app.use(
 app.use(function (err, req, res, next) {
   res.status(err.status || 500);
   if (req.headers["content-type"] === "application/x-www-form-urlencoded") {
-    req.flash("warning", err.message);
+    //req.flash("warning", err.message);
     return res.status(403).redirect(req.headers.referer);
   }
   return res.status(200).json({ error: true, message: err.message });
 });
 
-//Helmet;
-/*
-app.use(helmet());
-app.use(helmet.permittedCrossDomainPolicies());
-app.use(helmet.referrerPolicy({ policy: "same-origin" }));
-app.use(
-  helmet.contentSecurityPolicy({
-    directives: {
-      reportUri: "/report-violation",
-      defaultSrc: ["'self'", "ka-f.fontawesome.com"],
-      styleSrc: [
-        "'self'",
-        "stackpath.bootstrapcdn.com",
-        "kit-free.fontawesome.com",
-        "fonts.googleapis.com",
-        "'sha256-AQe0kMnttwVvXWV4LutnFsTIDltiV/z7MUyXkuK3q8s='",
-        "'sha256-z/+epQIZWnuW/jjeypGIpZt1je7sws1OeK6n2RHmOMY='",
-      ],
-      fontSrc: [
-        "'self'",
-        "fonts.googleapis.com",
-        "kit-free.fontawesome.com",
-        "fonts.gstatic.com",
-        "ka-f.fontawesome.com",
-      ],
-      scriptSrc: [
-        "'self'",
-        "kit.fontawesome.com",
-        "stackpath.bootstrapcdn.com",
-        "www.gstatic.com",
-        "cdn.jsdelivr.net",
-        "cdnjs.cloudflare.com",
-        "stackpath.bootstrapcdn.com",
-        "kit.fontawesome.com",
-      ],
-      frameSrc: [],
-      imgSrc: ["'self'"],
-    },
-    reportOnly: false,
-  })
-);
-
-app.use(csrf({ cookie: false }));*/
-
-// Keep session
+/* Keep session
 app.use((req, res, next) => {
   res.locals.session = req.session;
   next();
 });
+*/
 
 // Sanitize body and query params
 app.use((req, res, next) => {
@@ -159,16 +71,7 @@ app.use((req, res, next) => {
 });
 
 app.use(expressSanitizer());
-
-//app.use(cors());
-app.use(flash());
-/*
-app.post("/report-violation", (req, res) => {
-  if (req.body) console.log("CSP Violation: ", req.ip, req.body);
-  else console.log("CSP Violation: No data received!", req.ip);
-
-  res.status(204).end();
-});*/
+//app.use(flash());
 
 const scrapePage = async () => {
   const loggedEntries = [];
@@ -249,10 +152,7 @@ const scrapePage = async () => {
 
       lastLength = loggedEntries.length;
     }
-  }, 60 * 5000);
-
-  //while (true) {}
-  //await browser.close();
+  }, 60 * 3000);
 };
 
 async function savePrediction(loggedEntries, result) {
@@ -296,23 +196,19 @@ async function savePrediction(loggedEntries, result) {
       } else console.log("SAVE ERROR:", err.message);
     }
   }
-  ///////////////////
+
   if (totalSaved > 0) {
-    const avgPayout = totalPayout / totalSaved;
-    const avgDiff = totalDiff / totalSaved;
-    const avgPool = totalPool / totalSaved;
     const [errUpdate, averages] = await utils.promise(
       Average.findByIdAndUpdate("60d3706f5df5b953ed053cb3", {
         $inc: {
-          avgPayout: avgPayout,
-          avgDiff: avgDiff,
-          avgPool: avgPool,
+          totalPayout: totalPayout,
+          totalDiff: totalDiff,
+          totalPool: totalPool,
           nbEntries: totalSaved,
         },
       })
     );
     if (errUpdate) console.log("AN ERROR OCCURED WHILE SAVING AVERAGES");
-    else console.log(averages);
   }
 }
 
@@ -320,12 +216,104 @@ scrapePage();
 const scrapeApi = require("./api/scrape");
 app.use("/api/scrape", scrapeApi);
 
-/* MAIN ROUTE */
-app.get("/", (req, res) => {
-  try {
-    let obj = {};
+function formatAvg(number) {
+  return Math.round((number + Number.EPSILON) * 100) / 100;
+}
 
-    return res.status(200).send("OK");
+async function iterateEntries() {
+  const [err, result] = await utils.promise(Prediction.find());
+  if (!err) {
+    let totalPayout = 0;
+    let totalDiff = 0;
+    let totalPool = 0;
+    let totalPayoutUP = 0;
+    let nbRoundUP = 0;
+    let totalPayoutDOWN = 0;
+    let nbRoundDOWN = 0;
+    let riskyWins = 0;
+    let riskyTotalPayout = 0;
+    let safeWins = 0;
+    let safeTotalPayout = 0;
+
+    result.forEach((entry) => {
+      const parsedDiff = parseFloat(entry.diff.substr(1).replace(",", "."));
+      const parsedPool = parseFloat(entry.poolValue.replace(",", "."));
+      const payoutUP = parseFloat(
+        entry.payoutUP.slice(0, -1).replace(",", ".")
+      );
+      const payoutDOWN = parseFloat(
+        entry.payoutDOWN.slice(0, -1).replace(",", ".")
+      );
+      const winningPayout = parsedDiff > 0 ? payoutUP : payoutDOWN;
+
+      totalPayout += winningPayout;
+      totalPool += parsedPool;
+      totalDiff += parsedDiff;
+
+      if (parsedDiff > 0) {
+        totalPayoutUP += winningPayout;
+        nbRoundUP++;
+        if (payoutUP > payoutDOWN) {
+          riskyWins++;
+          riskyTotalPayout += winningPayout;
+        } else {
+          safeWins++;
+          safeTotalPayout += winningPayout;
+        }
+      } else {
+        totalPayoutDOWN += winningPayout;
+        nbRoundDOWN++;
+        if (payoutUP < payoutDOWN) {
+          riskyWins++;
+          riskyTotalPayout += winningPayout;
+        } else {
+          safeWins++;
+          safeTotalPayout += winningPayout;
+        }
+      }
+    });
+
+    const [errUpdate, averages] = await utils.promise(
+      Average.findByIdAndUpdate("60d3836b82b6dfd7f7b04c53", {
+        $inc: {
+          totalPayoutUP,
+          nbRoundUP,
+          totalPayoutDOWN,
+          nbRoundDOWN,
+          riskyTotalPayout,
+          riskyWins,
+          safeWins,
+          safeTotalPayout,
+        },
+      })
+    );
+    if (errUpdate) console.log("AN ERROR OCCURED WHILE SAVING AVERAGES");
+  }
+}
+
+/* MAIN ROUTE */
+app.get("/", async (req, res) => {
+  try {
+    var [err, result] = await utils.promise(
+      Average.findById("60d3836b82b6dfd7f7b04c53")
+    );
+    //await iterateEntries();
+
+    const averages = {
+      avgPayout: formatAvg(result.totalPayout / result.nbEntries),
+      avgDiff: formatAvg(result.totalDiff / result.nbEntries),
+      avgPool: formatAvg(result.totalPool / result.nbEntries),
+      avgRisky: formatAvg(result.riskyTotalPayout / result.riskyWins),
+      avgSafe: formatAvg(result.safeTotalPayout / result.safeWins),
+      nbRoundDOWN: result.nbRoundDOWN,
+      nbRoundUP: result.nbRoundUP,
+      nbEntries: result.nbEntries,
+    };
+
+    if (err) console.log("An error occured while fetching averages");
+    let obj = { averages };
+
+    return res.status(200).render("index", obj);
   } catch (err) {
     console.log("HOME ROUTE ERROR:", err, req.headers, req.ipAddress);
 
