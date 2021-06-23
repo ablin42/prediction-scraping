@@ -173,16 +173,16 @@ const scrapePage = async () => {
   const loggedEntries = [];
   let lastLength = 0;
   const options = {
+    headless: false,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   };
-  console.log(options);
   const browser = await puppeteer.launch(options);
   const page = await browser.newPage();
   await page.goto("https://pancakeswap.finance/prediction");
   await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
   page.waitForTimeout(1000);
 
-  while (true) {
+  const timerId = setInterval(async function () {
     const data = await page.evaluate(() => {
       const slides = document.querySelectorAll(".swiper-slide");
       const parsed = Array.from(slides).map((item) => {
@@ -210,7 +210,6 @@ const scrapePage = async () => {
           payoutDOWN,
         ] = array;
 
-        console.log(array);
         return {
           isExpired: status === "Expired" ? true : false,
           roundId,
@@ -238,7 +237,9 @@ const scrapePage = async () => {
 
       lastLength = loggedEntries.length;
     }
-  }
+  }, 60 * 1000);
+
+  //while (true) {}
   //await browser.close();
 };
 
