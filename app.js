@@ -14,6 +14,7 @@ require("dotenv").config();
 const puppeteer = require("puppeteer");
 const utils = require("./api/helpers/utils");
 const Prediction = require("./models/Prediction");
+const Average = require("./models/Average");
 
 mongoose.connect(
   process.env.DB_CONNECTION,
@@ -173,7 +174,6 @@ const scrapePage = async () => {
   const loggedEntries = [];
   let lastLength = 0;
   const options = {
-    headless: false,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   };
   const browser = await puppeteer.launch(options);
@@ -209,9 +209,21 @@ const scrapePage = async () => {
           ,
           payoutDOWN,
         ] = array;
+        const isExpired = status === "Expired" ? true : false;
+        if (!isExpired) return {};
+
+        const parsedDiff = parseFloat(diff.substr(1).replace(",", "."));
+        const parsedPool = parseFloat(poolValue.replace(",", "."));
+        const winningPayout =
+          parsedDiff > 0
+            ? parseFloat(payoutUP.slice(0, -1).replace(",", "."))
+            : parseFloat(payoutDOWN.slice(0, -1).replace(",", "."));
 
         return {
-          isExpired: status === "Expired" ? true : false,
+          isExpired,
+          parsedDiff,
+          parsedPool,
+          winningPayout,
           roundId,
           payoutUP,
           closePrice,
@@ -237,16 +249,24 @@ const scrapePage = async () => {
 
       lastLength = loggedEntries.length;
     }
-  }, 60 * 1000);
+  }, 60 * 5000);
 
   //while (true) {}
   //await browser.close();
 };
 
 async function savePrediction(loggedEntries, result) {
+  let totalPayout = 0;
+  let totalDiff = 0;
+  let totalPool = 0;
+  let totalSaved = 0;
+
   for (const predictionItem of result) {
     const {
       isExpired,
+      parsedDiff,
+      parsedPool,
+      winningPayout,
       roundId,
       payoutUP,
       closePrice,
@@ -267,9 +287,32 @@ async function savePrediction(loggedEntries, result) {
         payoutDOWN,
       });
       const [err, saved] = await utils.promise(prediction.save());
-      if (saved) console.log("saved!", saved);
-      else console.log("SAVE ERROR:", err.message);
+      if (saved) {
+        console.log(saved);
+        totalPayout += winningPayout;
+        totalDiff += parsedDiff;
+        totalPool += parsedPool;
+        totalSaved++;
+      } else console.log("SAVE ERROR:", err.message);
     }
+  }
+  ///////////////////
+  if (totalSaved > 0) {
+    const avgPayout = totalPayout / totalSaved;
+    const avgDiff = totalDiff / totalSaved;
+    const avgPool = totalPool / totalSaved;
+    const [errUpdate, averages] = await utils.promise(
+      Average.findByIdAndUpdate("60d3706f5df5b953ed053cb3", {
+        $inc: {
+          avgPayout: avgPayout,
+          avgDiff: avgDiff,
+          avgPool: avgPool,
+          nbEntries: totalSaved,
+        },
+      })
+    );
+    if (errUpdate) console.log("AN ERROR OCCURED WHILE SAVING AVERAGES");
+    else console.log(averages);
   }
 }
 
@@ -283,7 +326,6 @@ app.get("/", (req, res) => {
     let obj = {};
 
     return res.status(200).send("OK");
-    return res.status(200).render("index", obj);
   } catch (err) {
     console.log("HOME ROUTE ERROR:", err, req.headers, req.ipAddress);
 
