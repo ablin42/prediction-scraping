@@ -221,7 +221,7 @@ function formatAvg(number) {
 }
 
 async function iterateEntries() {
-  const [err, result] = await utils.promise(Prediction.find());
+  let [err, result] = await utils.promise(Prediction.find());
   if (!err) {
     let totalPayout = 0;
     let totalDiff = 0;
@@ -275,20 +275,137 @@ async function iterateEntries() {
 
     const [errUpdate, averages] = await utils.promise(
       Average.findByIdAndUpdate("60d3836b82b6dfd7f7b04c53", {
-        $inc: {
-          totalPayoutUP,
-          nbRoundUP,
-          totalPayoutDOWN,
-          nbRoundDOWN,
-          riskyTotalPayout,
-          riskyWins,
-          safeWins,
-          safeTotalPayout,
-        },
+        totalPayout,
+        totalDiff,
+        totalPool,
+        nbEntries: result.length,
+        totalPayoutUP,
+        nbRoundUP,
+        totalPayoutDOWN,
+        nbRoundDOWN,
+        riskyTotalPayout,
+        riskyWins,
+        safeWins,
+        safeTotalPayout,
       })
     );
     if (errUpdate) console.log("AN ERROR OCCURED WHILE SAVING AVERAGES");
   }
+}
+
+function getPercentage(number, total) {
+  return (number * 100) / total;
+}
+
+function refreshAverages() {
+  iterateEntries();
+  setInterval(() => {
+    iterateEntries();
+  }, 1000 * 1000 * 15);
+}
+
+refreshAverages();
+
+async function getPredictionByRange() {
+  const [err, result] = await utils.promise(
+    Prediction.find({
+      createdAt: {
+        $lt: new Date(),
+        $gte: new Date(new Date().getTime() - 4 * 60 * 60 * 1000), // hours minutes second miliseconds
+      },
+    })
+  );
+  if (err) console.log("Error fetching between date range");
+  return result;
+}
+
+function getRangeData(entries) {
+  if (entries.length > 0) {
+    let totalPayout = 0;
+    let totalDiff = 0;
+    let totalPool = 0;
+    let totalPayoutUP = 0;
+    let nbRoundUP = 0;
+    let totalPayoutDOWN = 0;
+    let nbRoundDOWN = 0;
+    let riskyWins = 0;
+    let riskyTotalPayout = 0;
+    let safeWins = 0;
+    let safeTotalPayout = 0;
+
+    entries.forEach((entry) => {
+      const parsedDiff = parseFloat(entry.diff.substr(1).replace(",", "."));
+      const parsedPool = parseFloat(entry.poolValue.replace(",", "."));
+      const payoutUP = parseFloat(
+        entry.payoutUP.slice(0, -1).replace(",", ".")
+      );
+      const payoutDOWN = parseFloat(
+        entry.payoutDOWN.slice(0, -1).replace(",", ".")
+      );
+      const winningPayout = parsedDiff > 0 ? payoutUP : payoutDOWN;
+
+      totalPayout += winningPayout;
+      totalPool += parsedPool;
+      totalDiff += parsedDiff;
+
+      if (parsedDiff > 0) {
+        totalPayoutUP += winningPayout;
+        nbRoundUP++;
+        if (payoutUP > payoutDOWN) {
+          riskyWins++;
+          riskyTotalPayout += winningPayout;
+        } else {
+          safeWins++;
+          safeTotalPayout += winningPayout;
+        }
+      } else {
+        totalPayoutDOWN += winningPayout;
+        nbRoundDOWN++;
+        if (payoutUP < payoutDOWN) {
+          riskyWins++;
+          riskyTotalPayout += winningPayout;
+        } else {
+          safeWins++;
+          safeTotalPayout += winningPayout;
+        }
+      }
+    });
+
+    return {
+      totalPayout,
+      totalDiff,
+      totalPool,
+      nbEntries: entries.length,
+      totalPayoutUP,
+      nbRoundUP,
+      totalPayoutDOWN,
+      nbRoundDOWN,
+      riskyTotalPayout,
+      riskyWins,
+      safeWins,
+      safeTotalPayout,
+    };
+  }
+  return null;
+}
+
+function getAverages(entries) {
+  return {
+    avgPayout: formatAvg(entries.totalPayout / entries.nbEntries),
+    avgDiff: formatAvg(entries.totalDiff / entries.nbEntries),
+    avgPool: formatAvg(entries.totalPool / entries.nbEntries),
+    avgRisky: formatAvg(entries.riskyTotalPayout / entries.riskyWins),
+    avgSafe: formatAvg(entries.safeTotalPayout / entries.safeWins),
+    safePercentWr: formatAvg(
+      getPercentage(entries.safeWins, entries.nbEntries)
+    ),
+    riskyPercentWr: formatAvg(
+      getPercentage(entries.riskyWins, entries.nbEntries)
+    ),
+    nbRoundDOWN: entries.nbRoundDOWN,
+    nbRoundUP: entries.nbRoundUP,
+    nbEntries: entries.nbEntries,
+  };
 }
 
 /* MAIN ROUTE */
@@ -297,21 +414,13 @@ app.get("/", async (req, res) => {
     var [err, result] = await utils.promise(
       Average.findById("60d3836b82b6dfd7f7b04c53")
     );
-    //await iterateEntries();
-
-    const averages = {
-      avgPayout: formatAvg(result.totalPayout / result.nbEntries),
-      avgDiff: formatAvg(result.totalDiff / result.nbEntries),
-      avgPool: formatAvg(result.totalPool / result.nbEntries),
-      avgRisky: formatAvg(result.riskyTotalPayout / result.riskyWins),
-      avgSafe: formatAvg(result.safeTotalPayout / result.safeWins),
-      nbRoundDOWN: result.nbRoundDOWN,
-      nbRoundUP: result.nbRoundUP,
-      nbEntries: result.nbEntries,
-    };
-
     if (err) console.log("An error occured while fetching averages");
-    let obj = { averages };
+
+    const rangedEntries = await getPredictionByRange();
+    const rangedData = getRangeData(rangedEntries);
+    const rangedAverages = getAverages(rangedData);
+    const averages = getAverages(result);
+    const obj = { averages, rangedAverages };
 
     return res.status(200).render("index", obj);
   } catch (err) {
@@ -322,5 +431,4 @@ app.get("/", async (req, res) => {
 });
 
 let port = process.env.PORT;
-//if (process.env.ENVIRONMENT === "prod") port = "/tmp/nginx.socket";
 app.listen(port, () => console.log(`Listening on port ${port}...`));
