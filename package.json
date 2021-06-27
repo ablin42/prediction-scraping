@@ -30,6 +30,7 @@
     "helmet": "^4.6.0",
     "mongo-sanitize": "^1.1.0",
     "mongoose": "^5.12.14",
+    "nodemailer": "^6.6.2",
     "parse-error": "^0.2.0",
     "puppeteer": "^10.0.0"
   }

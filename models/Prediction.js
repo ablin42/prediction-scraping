@@ -31,9 +31,13 @@ const PredictionSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    history: {
+      type: Array,
+      required: false,
+    },
     date: { type: String, default: Date.now },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("prediction", PredictionSchema);
+module.exports = mongoose.model("predi", PredictionSchema);
