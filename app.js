@@ -11,6 +11,7 @@ const {
   getAverages,
   getPredictionData,
   refreshAverages,
+  getEsperance,
 } = require("./helpers/data");
 
 const { getPredictionByRange } = require("./helpers/query");
@@ -86,7 +87,22 @@ app.get("/", async (req, res) => {
     const rangedData = getPredictionData(rangedEntries);
     const rangedAverages = getAverages(rangedData);
     const averages = getAverages(result);
-    const obj = { averages, rangedAverages };
+    const obj = {
+      averages,
+      rangedAverages,
+      overallSafeEsperance: getEsperance(
+        averages.safePercentWr,
+        averages.riskyPercentWr,
+        averages.avgSafe,
+        -1
+      ),
+      rangedSafeEsperance: getEsperance(
+        rangedAverages.safePercentWr,
+        rangedAverages.riskyPercentWr,
+        rangedAverages.avgSafe,
+        -1
+      ),
+    };
 
     return res.status(200).render("index", obj);
   } catch (err) {
