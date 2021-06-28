@@ -124,7 +124,7 @@ class Scraping {
   async update(fn) {
     const filtered = this.data.filter((item) => item.isExpired);
 
-    if (filtered.length > this.lastLength || lastLength === 0) {
+    if (filtered.length > this.lastLength || this.lastLength === 0) {
       await fn(this.loggedEntries, filtered);
 
       this.data.forEach((item) => {
