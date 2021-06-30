@@ -34,8 +34,6 @@ const incrementTotalAverage = async function ({
   totalPool,
   totalSaved,
 }) {
-  console.log(totalPayout, totalDiff, totalPool, totalSaved);
-  return;
   const [errUpdate, averages] = await utils.promise(
     Average.findByIdAndUpdate("60d3706f5df5b953ed053cb3", {
       $inc: {
@@ -64,7 +62,6 @@ const updateTotalAverage = async function ({
   safeWins,
   safeTotalPayout,
 }) {
-  return;
   const [errUpdate, averages] = await utils.promise(
     Average.findByIdAndUpdate("60d3836b82b6dfd7f7b04c53", {
       totalPayout,
