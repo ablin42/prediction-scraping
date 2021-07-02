@@ -65,6 +65,47 @@ app.use((req, res, next) => {
   next();
 });
 
+// Add headers
+
+// TODO allow multiple access
+/*
+app.use((req, res, next) => {
+  const allowedOrigins = ['http://127.0.0.1:8020', 'http://localhost:8020', 'http://127.0.0.1:9000', 'http://localhost:9000'];
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+       res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  //res.header('Access-Control-Allow-Origin', 'http://127.0.0.1:8020');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', true);
+  return next();
+});
+*/
+app.use(function (req, res, next) {
+  // Website you wish to allow to connect
+  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+
+  // Request methods you wish to allow
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+  );
+
+  // Request headers you wish to allow
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "X-Requested-With,content-type"
+  );
+
+  // Set to true if you need the website to include cookies in the requests sent
+  // to the API (e.g. in case you use sessions)
+  res.setHeader("Access-Control-Allow-Credentials", true);
+
+  // Pass to next layer of middleware
+  next();
+});
+
 app.use(expressSanitizer());
 
 scrapePage(); //
@@ -83,7 +124,7 @@ app.get("/", async (req, res) => {
     );
     if (err) console.log("An error occured while fetching averages");
 
-    const rangedEntries = await getPredictionByRange();
+    const rangedEntries = await getPredictionByRange(2);
     const rangedData = getPredictionData(rangedEntries);
     const rangedAverages = getAverages(rangedData);
     const averages = getAverages(result);

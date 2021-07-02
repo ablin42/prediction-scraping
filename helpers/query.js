@@ -1,8 +1,28 @@
+const axios = require("axios").default;
+
 const utils = require("./utils");
 const Prediction = require("../models/Prediction");
 const Average = require("../models/Average");
+const Status = require("../models/Status");
 
-const addPrediction = async function (
+async function setStatus(status) {
+  const newStatus = new Status({
+    isUp: status,
+  });
+  const [err, saved] = await utils.promise(newStatus.save());
+  if (err) console.log("AN ERROR OCCURED UPDATING STATUS");
+  return saved;
+}
+
+async function getStatus() {
+  let [err, result] = await utils.promise(
+    Status.find().sort({ _id: -1 }).limit(1)
+  );
+  if (err) console.log("AN ERROR OCCURED FETCHING LAST STATUS");
+  return result;
+}
+
+async function addPrediction(
   roundId,
   payoutUP,
   closePrice,
@@ -20,15 +40,14 @@ const addPrediction = async function (
     poolValue,
     payoutDOWN,
   });
-  console.log(roundId);
   const [err, saved] = await utils.promise(prediction.save());
   if (err) console.log("ERROR SAVING PREDICTION", err.message);
-  else console.log(saved);
+  else console.log(saved.roundId);
 
   return saved;
-};
+}
 
-const incrementTotalAverage = async function ({
+async function incrementTotalAverage({
   totalPayout,
   totalDiff,
   totalPool,
@@ -46,9 +65,9 @@ const incrementTotalAverage = async function ({
   );
   if (errUpdate) console.log("AN ERROR OCCURED WHILE SAVING AVERAGES");
   return averages;
-};
+}
 
-const updateTotalAverage = async function ({
+async function updateTotalAverage({
   totalPayout,
   totalDiff,
   totalPool,
@@ -81,18 +100,25 @@ const updateTotalAverage = async function ({
   if (errUpdate)
     console.log("AN ERROR OCCURED WHILE SAVING AVERAGES", errUpdate);
   return averages;
-};
+}
 
-async function getPredictionByRange() {
+async function getPredictionByRange(hours) {
   const [err, result] = await utils.promise(
     Prediction.find({
       createdAt: {
         $lt: new Date(),
-        $gte: new Date(new Date().getTime() - 2 * 60 * 60 * 1000), // hours minutes second miliseconds
+        $gte: new Date(new Date().getTime() - hours * 60 * 60 * 1000), // hours minutes second miliseconds
       },
     })
   );
   if (err) console.log("Error fetching between date range");
+  return result;
+}
+
+async function getPrediction(roundId) {
+  let [err, result] = await utils.promise(Prediction.findOne({ roundId }));
+  if (err) console.log("AN ERROR OCCURED FETCHING THE PREDICION", roundId);
+
   return result;
 }
 
@@ -102,10 +128,62 @@ async function getAllPredictions() {
   return result;
 }
 
+async function getTickerPrice(ticker) {
+  try {
+    const response = await axios.get(
+      `https://api.binance.com/api/v3/ticker/price?symbol=${ticker}USDT`
+    );
+    if (response.status === 200) return parseFloat(response.data.price);
+    return false;
+  } catch (err) {
+    console.log(`ERROR FETCHING ${ticker} PRICE`, err);
+  }
+}
+/*
+    * getTickerPrice response
+    {"symbol":"BNBUSDT","price":"298.59000000"}
+*/
+
+async function getCandle(ticker) {
+  try {
+    const response = await axios.get(
+      `https://api.binance.com/api/v3/klines?symbol=${ticker}USDT&interval=5m&limit=1`
+    );
+    if (response.status === 200) return response.data[0];
+    return false;
+  } catch (err) {
+    console.log(`ERROR FETCHING ${ticker} PRICE`, err);
+  }
+}
+/*
+    * getCandle response
+    [
+        [
+            1499040000000,      // Open time
+            "0.01634790",       // Open
+            "0.80000000",       // High
+            "0.01575800",       // Low
+            "0.01577100",       // Close
+            "148976.11427815",  // Volume
+            1499644799999,      // Close time
+            "2434.19055334",    // Quote asset volume
+            308,                // Number of trades
+            "1756.87402397",    // Taker buy base asset volume
+            "28.46694368",      // Taker buy quote asset volume
+            "17928899.62484339" // Ignore.
+        ]
+    ]
+*/
+
 module.exports = {
+  setStatus,
+  getStatus,
   addPrediction,
   incrementTotalAverage,
   updateTotalAverage,
   getPredictionByRange,
+  getPrediction,
   getAllPredictions,
+  getTickerPrice,
+  getCandle,
 };

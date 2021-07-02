@@ -4,7 +4,6 @@ class TotalAverages {
     this.totalDiff = 0;
     this.totalPool = 0;
     this.totalPayoutUP = 0;
-    this.nbEntries = 0; //
     this.nbRoundUP = 0;
     this.totalPayoutDOWN = 0;
     this.nbRoundDOWN = 0;
@@ -16,7 +15,7 @@ class TotalAverages {
 
   getData() {
     return {
-      nbEntries: this.nbRoundUP + this.nbRoundDOWN, //
+      nbEntries: this.nbRoundUP + this.nbRoundDOWN,
       totalPayout: this.totalPayout,
       totalDiff: this.totalDiff,
       totalPool: this.totalPool,
@@ -119,6 +118,10 @@ class Scraping {
     this.lastLength = 0;
     this.loggedEntries = [];
     this.data = undefined;
+    this.next = {};
+    this.live = {};
+    this.liveDatedEntries = [];
+    this.datedEntries = [];
   }
 
   async update(fn) {
@@ -134,6 +137,57 @@ class Scraping {
 
       this.lastLength = this.loggedEntries.length;
     }
+  }
+
+  // async save(data, fn) {
+  //   const prediction = new Prediction({
+  //     roundId: data.rounId,
+  //     payoutUP: data.payoutUP,
+  //     closePrice: data.closePrice,
+  //     diff: data.diff,
+  //     openPrice: data.openPrice,
+  //     poolValue: data.poolValue,
+  //     payoutDOWN: data.payoutDOWN,
+  //     history: this.liveDatedEntries,
+  //   });
+
+  //   console.log(prediction, "!!!");
+  //   const [err, saved] = await utils.promise(prediction.save());
+  //   if (err) console.log("ERROR SAVING PREDICTION", err.message);
+  //   else console.log(saved);
+
+  //   return saved;
+  // }
+
+  setLive(live) {
+    this.live = live;
+  }
+
+  getLive() {
+    return this.live;
+  }
+
+  setLiveDatedEntries(entry) {
+    this.liveDatedEntries.push(entry);
+  }
+
+  setNext(next) {
+    if (this.next.roundId !== next.roundId && this.next.roundId !== undefined) {
+      this.liveDatedEntries = this.datedEntries;
+      this.live = this.next;
+
+      this.datedEntries = [];
+    }
+    this.next = next;
+  }
+
+  getNext() {
+    return this.next;
+  }
+
+  setDatedEntries(entry) {
+    this.datedEntries.push(entry);
+    console.log("next entr");
   }
 
   setData(data) {

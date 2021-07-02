@@ -4,52 +4,14 @@ const { isExpired, getParsedData, winningPayout } = require("./parser");
 const {
   addPrediction,
   updateTotalAverage,
-  getPrediction,
   getAllPredictions,
   getTickerPrice,
   getCandle,
   setStatus,
   getStatus,
 } = require("./query");
-const { TotalAverages, Prediction } = require("./average");
-const { Scraping } = require("./round");
+const { TotalAverages, Prediction, Scraping } = require("./average");
 const mailer = require("./contact");
-
-async function newSavePrediction(entry) {
-  console.log("eeeh oohhh", entry);
-  const {
-    parsedDiff,
-    parsedPool,
-    winningPayout,
-    roundId,
-    payoutUP,
-    closePrice,
-    diff,
-    openPrice,
-    poolValue,
-    payoutDOWN,
-  } = entry;
-
-  const addedPrediction = await addPrediction(
-    roundId,
-    payoutUP,
-    closePrice,
-    diff,
-    openPrice,
-    poolValue,
-    payoutDOWN
-  );
-
-  console.log(addedPrediction, "!");
-
-  // if (addedPrediction)
-  //   averages = await incrementTotalAverage({
-  //     nbEntries: 1,
-  //     totalPayout: winningPayout,
-  //     totalDiff: parsedDiff,
-  //     totalPool: parsedPool,
-  //   });
-}
 
 const scrapePage = async () => {
   const options = {
@@ -59,19 +21,12 @@ const scrapePage = async () => {
   const page = await browser.newPage();
   const newScraping = new Scraping();
 
-  await page.exposeFunction("_savePrediction", newSavePrediction);
-
   await page.exposeFunction("_isExpired", isExpired);
   await page.exposeFunction("_winningPayout", winningPayout);
   await page.exposeFunction("_getParsedData", getParsedData);
 
-  await page.exposeFunction("_getPrediction", getPrediction);
-
   await page.exposeFunction("_Scraping", Scraping);
 
-  await page.exposeFunction("_setData", (data) => newScraping.setData(data));
-  await page.exposeFunction("_update", (fn) => newScraping.update(fn));
-  await page.exposeFunction("_save", (fn) => newScraping.save(fn));
   await page.exposeFunction("setNext", (next) => newScraping.setNext(next));
   await page.exposeFunction("getNext", () => newScraping.getNext());
   await page.exposeFunction("setDatedEntries", (entry) =>
@@ -93,7 +48,7 @@ const scrapePage = async () => {
       });
 
       const status = await getStatus();
-      if (!status[0].isUp) {
+      if (!status.isUp) {
         await setStatus(true);
         if (await mailer(process.env.EMAIL, "Market is [ UP ]", ""))
           throw new Error("An error occured while sending the mail");
@@ -101,14 +56,14 @@ const scrapePage = async () => {
     } catch (e) {
       if (e instanceof puppeteer.errors.TimeoutError) {
         const status = await getStatus();
-        if (status[0].isUp) {
+        if (status.isUp) {
           await setStatus(false);
           if (await mailer(process.env.EMAIL, "Market is [ DOWN ]", ""))
             throw new Error("An error occured while sending the mail");
         }
       }
     }
-  }, 1000 * 10 * 5);
+  }, 1000 * 60 * 5);
 
   await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
 
@@ -120,72 +75,30 @@ const scrapePage = async () => {
     const secondsSinceCandleOpen = (timestamp - BNBCandle[0]) / 1000;
     const data = await page.evaluate(
       async (BNBPrice, BTCPrice, secondsSinceCandleOpen) => {
-        // TODO
-        /*
-          get all rounds
-          iterate over expired rounds
-          if roundid doesnt exist in db
-          add round like we used to, without history
-        */
+        const [
+          status,
+          roundId,
+          ,
+          payoutUP,
+          ,
+          ,
+          ,
+          poolValue,
+          ,
+          ,
+          ,
+          ,
+          payoutDOWN,
+        ] = document
+          .querySelector(".swiper-slide-next")
+          .innerText.replaceAll("\n", " ")
+          .split(" ");
 
-        const slides = document.querySelectorAll(".swiper-slide");
-        for (item of Array.from(slides)) {
-          const [
-            _status,
-            _roundId,
-            ,
-            _payoutUP,
-            ,
-            ,
-            ,
-            _closePrice,
-            _diff,
-            ,
-            ,
-            _openPrice,
-            ,
-            ,
-            _poolValue,
-            ,
-            _payoutDOWN,
-          ] = item
-            .querySelector("div > div > div > div > div > div > div > div")
-            .innerText.replaceAll("\n", " ")
-            .split(" ");
+        const timeLeft = document.querySelector(
+          "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1) > div:nth-child(1) > div > div > div:nth-child(1)  > div:nth-child(3) > div > div:nth-child(1)  > div > div:nth-child(1) > div:nth-child(1)"
+        ).innerHTML;
+        //? first nth-child(2) is 2 because of popup, else set to 1
 
-          const isExpired = await _isExpired(_status);
-          if (!isExpired || _payoutUP === "0x" || _payoutDOWN === "0x")
-            return {};
-
-          const existingRound = await _getPrediction(_roundId);
-          if (existingRound) return {};
-
-          const { parsedDiff, parsedPool, parsedUP, parsedDOWN } =
-            await _getParsedData(_diff, _poolValue, _payoutUP, _payoutDOWN);
-          const winningPayout = await _winningPayout(
-            _diff,
-            parsedUP,
-            parsedDOWN
-          );
-
-          const data = {
-            isExpired,
-            parsedDiff,
-            parsedPool,
-            winningPayout,
-            roundId: _roundId,
-            payoutUP: _payoutUP,
-            closePrice: _closePrice,
-            diff: _diff,
-            openPrice: _openPrice,
-            poolValue: _poolValue,
-            payoutDOWN: _payoutDOWN,
-          };
-
-          _savePrediction(data);
-        }
-
-        // * Get Live Round Data *
         const [
           liveStatus,
           liveRoundId,
@@ -209,77 +122,9 @@ const scrapePage = async () => {
           .innerText.replaceAll("\n", " ")
           .split(" ");
 
-        // * Get Next Round Data *
-        const [
-          status,
-          roundId,
-          ,
-          payoutUP,
-          ,
-          ,
-          ,
-          poolValue,
-          ,
-          ,
-          ,
-          ,
-          payoutDOWN,
-        ] = document
-          .querySelector(".swiper-slide-next")
-          .innerText.replaceAll("\n", " ")
-          .split(" ");
-
-        // * Get Timer *
-        const timeLeft = document.querySelector(
-          "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1) > div:nth-child(1) > div > div > div:nth-child(1)  > div:nth-child(3) > div > div:nth-child(1)  > div > div:nth-child(1) > div:nth-child(1)"
-        ).innerHTML;
-        //? first nth-child(2) is 2 because of popup, else set to 1
-
         const currentlyMonitored = await getNext();
         const currentlyLive = await getLive();
 
-        // * Goes here only if the live round that was being monitored closes *
-        if (
-          liveRoundId !== currentlyLive.roundId &&
-          currentlyLive?.roundId !== undefined
-        ) {
-          // * Get Prev Round Data (= round that was monitored until now) *
-          const [
-            prevStatus,
-            prevRoundId,
-            ,
-            prevPayoutUP,
-            ,
-            ,
-            ,
-            prevClosePrice,
-            prevDiff,
-            ,
-            ,
-            prevOpenPrice,
-            ,
-            ,
-            prevPoolValue,
-            ,
-            prevPayoutDOWN,
-          ] = document
-            .querySelector(".swiper-slide-prev")
-            .innerText.replaceAll("\n", " ")
-            .split(" ");
-
-          await save({
-            status: prevStatus,
-            roundId: prevRoundId,
-            payoutUP: prevPayoutUP,
-            oraclePrice: prevClosePrice,
-            diff: prevDiff,
-            openPrice: prevOpenPrice,
-            poolValue: prevPoolValue,
-            payoutDOWN: prevPayoutDOWN,
-          });
-        }
-
-        // * Save Next Round data *
         if (
           currentlyMonitored.roundId !== roundId ||
           currentlyMonitored.poolValue !== poolValue
@@ -295,11 +140,10 @@ const scrapePage = async () => {
             payoutDOWN,
             poolValue,
           };
-          setNext({ status, roundId, poolValue, timeLeft });
+          setNext({ status, roundId, poolValue });
           setDatedEntries(datedEntries);
         }
 
-        // * Save Live Round Data *
         if (
           currentlyLive.liveOraclePrice !== liveOraclePrice &&
           liveRoundId !== currentlyMonitored.roundId &&
@@ -322,79 +166,90 @@ const scrapePage = async () => {
             roundId: liveRoundId,
             oraclePrice: liveOraclePrice,
             openPrice: liveOpenPrice,
-            timeLeft,
           });
           setLiveDatedEntries(datedEntries);
         }
+        /* 
+                TODO return values
+                  return Promise.resolve({
+                   
+                  }); */
       },
       BNBPrice,
       BTCPrice,
       secondsSinceCandleOpen
     );
+
+    // TODO insert returned value into db when live round is closing
+    const currentLive = newScraping.getLive();
+    if (currentLive)
+    // actually use data in class
+    // send in db once 'live' is closed ?
+    // ?  newScraping.setData(data);
+    // ?  newScraping.update(savePrediction);
   }, 10000);
+
+  setInterval(async function () {
+    const data = await page.evaluate(async () => {
+      const slides = document.querySelectorAll(".swiper-slide");
+      const parsed = await Promise.all(
+        Array.from(slides).map(async (item) => {
+          const [
+            status,
+            roundId,
+            ,
+            payoutUP,
+            ,
+            ,
+            ,
+            closePrice,
+            diff,
+            ,
+            ,
+            openPrice,
+            ,
+            ,
+            poolValue,
+            ,
+            payoutDOWN,
+          ] = item
+            .querySelector("div > div > div > div > div > div > div > div")
+            .innerText.replaceAll("\n", " ")
+            .split(" ");
+
+          const isExpired = await _isExpired(status);
+          if (!isExpired || payoutUP === "0x" || payoutDOWN === "0x") return {};
+
+          const { parsedDiff, parsedPool, parsedUP, parsedDOWN } =
+            await _getParsedData(diff, poolValue, payoutUP, payoutDOWN);
+          const winningPayout = await _winningPayout(
+            diff,
+            parsedUP,
+            parsedDOWN
+          );
+
+          return Promise.resolve({
+            isExpired,
+            parsedDiff,
+            parsedPool,
+            winningPayout,
+            roundId,
+            payoutUP,
+            closePrice,
+            diff,
+            openPrice,
+            poolValue,
+            payoutDOWN,
+          });
+        })
+      );
+      return parsed;
+    });
+
+    newScraping.setData(data);
+    newScraping.update(savePrediction);
+  }, 60 * 1000 * 3);
 };
-
-//   setInterval(async function () {
-//     const data = await page.evaluate(async () => {
-//       const slides = document.querySelectorAll(".swiper-slide");
-//       const parsed = await Promise.all(
-//         Array.from(slides).map(async (item) => {
-//           const [
-//             status,
-//             roundId,
-//             ,
-//             payoutUP,
-//             ,
-//             ,
-//             ,
-//             closePrice,
-//             diff,
-//             ,
-//             ,
-//             openPrice,
-//             ,
-//             ,
-//             poolValue,
-//             ,
-//             payoutDOWN,
-//           ] = item
-//             .querySelector("div > div > div > div > div > div > div > div")
-//             .innerText.replaceAll("\n", " ")
-//             .split(" ");
-
-//           const isExpired = await _isExpired(status);
-//           if (!isExpired || payoutUP === "0x" || payoutDOWN === "0x") return {};
-
-//           const { parsedDiff, parsedPool, parsedUP, parsedDOWN } =
-//             await _getParsedData(diff, poolValue, payoutUP, payoutDOWN);
-//           const winningPayout = await _winningPayout(
-//             diff,
-//             parsedUP,
-//             parsedDOWN
-//           );
-
-//           return Promise.resolve({
-//             isExpired,
-//             parsedDiff,
-//             parsedPool,
-//             winningPayout,
-//             roundId,
-//             payoutUP,
-//             closePrice,
-//             diff,
-//             openPrice,
-//             poolValue,
-//             payoutDOWN,
-//           });
-//         })
-//       );
-//       return parsed;
-//     });
-
-//     newScraping.setData(data);
-//     newScraping.update(savePrediction);
-//   }, 60 * 1000 * 3);
-// };
 
 async function savePrediction(loggedEntries, result) {
   const prediction = new Prediction();
@@ -480,7 +335,9 @@ async function refreshAverages() {
     await updateTotalAverage(data);
   }, 1000 * 60 * 15); // ? 15 minutes
 }
-
+/**
+ * @param  {} entries
+ */
 function getAverages(entries) {
   if (!entries) {
     return {
@@ -514,6 +371,14 @@ function getAverages(entries) {
   };
 }
 
+/**
+ * @param  {} pWin
+ * @param  {} pLose
+ * @param  {} win
+ * @param  {} lose
+ *
+ * {@link getAverages}
+ */
 function getEsperance(pWin, pLose, win, lose) {
   return formatAvg(
     (pWin / 100) * (win * 10) - (pLose / 100) * (lose * 10) - 10
