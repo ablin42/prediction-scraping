@@ -27,27 +27,6 @@ class Scraping {
     }
   }
 
-  async save(fn) {
-    console.log("issou !!!");
-    await fn(data);
-    // const prediction = new Prediction({
-    //   roundId: data.roundId,
-    //   payoutUP: data.payoutUP,
-    //   closePrice: data.oraclePrice,
-    //   diff: data.diff,
-    //   openPrice: data.openPrice,
-    //   poolValue: data.poolValue,
-    //   payoutDOWN: data.payoutDOWN,
-    //   history: this.liveDatedEntries,
-    // });
-
-    // const [err, saved] = await utils.promise(prediction.save());
-    // if (err) console.log("ERROR SAVING PREDICTION", err.message);
-    // else console.log(saved.roundId);
-
-    // return saved;
-  }
-
   setLive(live) {
     this.live = live;
   }

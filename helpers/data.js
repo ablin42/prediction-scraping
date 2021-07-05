@@ -54,7 +54,7 @@ async function newSavePrediction(entry) {
 
 const scrapePage = async () => {
   const options = {
-    headless: false,
+    //headless: false,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   };
   const browser = await puppeteer.launch(options);
@@ -73,7 +73,6 @@ const scrapePage = async () => {
 
   await page.exposeFunction("_setData", (data) => newScraping.setData(data));
   await page.exposeFunction("_update", (fn) => newScraping.update(fn));
-  await page.exposeFunction("_save", (fn) => newScraping.save(fn));
   await page.exposeFunction("setNext", (next) => newScraping.setNext(next));
   await page.exposeFunction("getNext", () => newScraping.getNext());
   await page.exposeFunction("setDatedEntries", (entry) =>
@@ -214,7 +213,6 @@ const scrapePage = async () => {
             parsedDOWN
           );
 
-          console.log("saveLive", currentlyLive, history);
           _savePrediction({
             parsedDiff,
             parsedPool,
@@ -342,104 +340,6 @@ const scrapePage = async () => {
   }, 10000);
 };
 
-//   setInterval(async function () {
-//     const data = await page.evaluate(async () => {
-//       const slides = document.querySelectorAll(".swiper-slide");
-//       const parsed = await Promise.all(
-//         Array.from(slides).map(async (item) => {
-//           const [
-//             status,
-//             roundId,
-//             ,
-//             payoutUP,
-//             ,
-//             ,
-//             ,
-//             closePrice,
-//             diff,
-//             ,
-//             ,
-//             openPrice,
-//             ,
-//             ,
-//             poolValue,
-//             ,
-//             payoutDOWN,
-//           ] = item
-//             .querySelector("div > div > div > div > div > div > div > div")
-//             .innerText.replaceAll("\n", " ")
-//             .split(" ");
-
-//           const isExpired = await _isExpired(status);
-//           if (!isExpired || payoutUP === "0x" || payoutDOWN === "0x") return {};
-
-//           const { parsedDiff, parsedPool, parsedUP, parsedDOWN } =
-//             await _getParsedData(diff, poolValue, payoutUP, payoutDOWN);
-//           const winningPayout = await _winningPayout(
-//             diff,
-//             parsedUP,
-//             parsedDOWN
-//           );
-
-//           return Promise.resolve({
-//             isExpired,
-//             parsedDiff,
-//             parsedPool,
-//             winningPayout,
-//             roundId,
-//             payoutUP,
-//             closePrice,
-//             diff,
-//             openPrice,
-//             poolValue,
-//             payoutDOWN,
-//           });
-//         })
-//       );
-//       return parsed;
-//     });
-
-//     newScraping.setData(data);
-//     newScraping.update(savePrediction);
-//   }, 60 * 1000 * 3);
-// };
-
-async function savePrediction(loggedEntries, result) {
-  const prediction = new Prediction();
-  for (const predictionItem of result) {
-    const {
-      parsedDiff,
-      parsedPool,
-      winningPayout,
-      roundId,
-      payoutUP,
-      closePrice,
-      diff,
-      openPrice,
-      poolValue,
-      payoutDOWN,
-    } = predictionItem;
-
-    if (loggedEntries.indexOf(roundId) < 0) {
-      const addedPrediction = await addPrediction(
-        roundId,
-        payoutUP,
-        closePrice,
-        diff,
-        openPrice,
-        poolValue,
-        payoutDOWN
-      );
-
-      if (addedPrediction)
-        prediction.added(winningPayout, parsedPool, parsedDiff);
-    }
-  }
-
-  if (prediction.getNbSaved() > 0)
-    averages = await incrementTotalAverage(prediction.getData());
-}
-
 function getPredictionData(entries) {
   if (entries.length <= 0) return null;
 
@@ -530,7 +430,6 @@ function getEsperance(pWin, pLose, win, lose) {
 
 module.exports = {
   scrapePage,
-  savePrediction,
   formatAvg,
   refreshAverages,
   getPercentage,
