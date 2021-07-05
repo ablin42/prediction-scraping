@@ -84,7 +84,7 @@ app.use((req, res, next) => {
 */
 app.use(function (req, res, next) {
   // Website you wish to allow to connect
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.setHeader("Access-Control-Allow-Origin", process.env.FRONT_HOST);
 
   // Request methods you wish to allow
   res.setHeader(
@@ -125,6 +125,7 @@ app.get("/", async (req, res) => {
     if (err) console.log("An error occured while fetching averages");
 
     const rangedEntries = await getPredictionByRange(2);
+    console.log(rangedEntries, rangedEntries.length);
     const rangedData = getPredictionData(rangedEntries);
     const rangedAverages = getAverages(rangedData);
     const averages = getAverages(result);
