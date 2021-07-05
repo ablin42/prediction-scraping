@@ -40,4 +40,4 @@ const PredictionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("predi", PredictionSchema);
+module.exports = mongoose.model("prediction", PredictionSchema);

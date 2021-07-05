@@ -19,7 +19,15 @@ async function getStatus() {
     Status.find().sort({ _id: -1 }).limit(1)
   );
   if (err) console.log("AN ERROR OCCURED FETCHING LAST STATUS");
-  return result;
+  return result[0];
+}
+
+async function getLastPrediction() {
+  let [err, result] = await utils.promise(
+    Prediction.find().sort({ _id: -1 }).limit(1)
+  );
+  if (err) console.log("AN ERROR OCCURED FETCHING LAST PREDICTION");
+  return result[0];
 }
 
 async function addPrediction(
@@ -29,7 +37,8 @@ async function addPrediction(
   diff,
   openPrice,
   poolValue,
-  payoutDOWN
+  payoutDOWN,
+  history
 ) {
   const prediction = new Prediction({
     roundId,
@@ -39,6 +48,7 @@ async function addPrediction(
     openPrice,
     poolValue,
     payoutDOWN,
+    history,
   });
   const [err, saved] = await utils.promise(prediction.save());
   if (err) console.log("ERROR SAVING PREDICTION", err.message);
@@ -179,6 +189,7 @@ module.exports = {
   setStatus,
   getStatus,
   addPrediction,
+  getLastPrediction,
   incrementTotalAverage,
   updateTotalAverage,
   getPredictionByRange,

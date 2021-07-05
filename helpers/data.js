@@ -4,7 +4,9 @@ const { isExpired, getParsedData, winningPayout } = require("./parser");
 const {
   addPrediction,
   updateTotalAverage,
+  incrementTotalAverage,
   getPrediction,
+  getLastPrediction,
   getAllPredictions,
   getTickerPrice,
   getCandle,
@@ -16,7 +18,6 @@ const { Scraping } = require("./round");
 const mailer = require("./contact");
 
 async function newSavePrediction(entry) {
-  console.log("eeeh oohhh", entry);
   const {
     parsedDiff,
     parsedPool,
@@ -28,6 +29,7 @@ async function newSavePrediction(entry) {
     openPrice,
     poolValue,
     payoutDOWN,
+    history,
   } = entry;
 
   const addedPrediction = await addPrediction(
@@ -37,22 +39,22 @@ async function newSavePrediction(entry) {
     diff,
     openPrice,
     poolValue,
-    payoutDOWN
+    payoutDOWN,
+    history
   );
 
-  console.log(addedPrediction, "!");
-
-  // if (addedPrediction)
-  //   averages = await incrementTotalAverage({
-  //     nbEntries: 1,
-  //     totalPayout: winningPayout,
-  //     totalDiff: parsedDiff,
-  //     totalPool: parsedPool,
-  //   });
+  if (addedPrediction)
+    averages = await incrementTotalAverage({
+      totalPayout: winningPayout,
+      totalDiff: parsedDiff,
+      totalPool: parsedPool,
+      totalSaved: 1,
+    });
 }
 
 const scrapePage = async () => {
   const options = {
+    headless: false,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   };
   const browser = await puppeteer.launch(options);
@@ -80,6 +82,7 @@ const scrapePage = async () => {
 
   await page.exposeFunction("setLive", (live) => newScraping.setLive(live));
   await page.exposeFunction("getLive", () => newScraping.getLive());
+  await page.exposeFunction("getHistory", () => newScraping.getLiveHistory());
   await page.exposeFunction("setLiveDatedEntries", (entry) =>
     newScraping.setLiveDatedEntries(entry)
   );
@@ -87,28 +90,23 @@ const scrapePage = async () => {
   await page.goto("https://pancakeswap.finance/prediction");
 
   setInterval(async function () {
-    try {
-      await page.waitForSelector(".swiper-slide-next", {
-        timeout: 1000 * 60 * 3,
-      });
+    const status = await getStatus();
+    const lastPrediction = await getLastPrediction();
+    const timestamp = +new Date();
 
-      const status = await getStatus();
-      if (!status[0].isUp) {
-        await setStatus(true);
-        if (await mailer(process.env.EMAIL, "Market is [ UP ]", ""))
-          throw new Error("An error occured while sending the mail");
-      }
-    } catch (e) {
-      if (e instanceof puppeteer.errors.TimeoutError) {
-        const status = await getStatus();
-        if (status[0].isUp) {
-          await setStatus(false);
-          if (await mailer(process.env.EMAIL, "Market is [ DOWN ]", ""))
-            throw new Error("An error occured while sending the mail");
-        }
-      }
+    if (timestamp - lastPrediction.date > 10 * 60 * 1000 && status.isUp) {
+      await setStatus(false);
+      if (await mailer(process.env.EMAIL, "Market is [ DOWN ]", ""))
+        console.log("An error occured while sending the mail");
+    } else if (
+      timestamp - lastPrediction.date < 10 * 60 * 1000 &&
+      !status.isUp
+    ) {
+      await setStatus(true);
+      if (await mailer(process.env.EMAIL, "Market is [ UP ]", ""))
+        console.log("An error occured while sending the mail");
     }
-  }, 1000 * 10 * 5);
+  }, 1000 * 60 * 10);
 
   await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
 
@@ -120,71 +118,6 @@ const scrapePage = async () => {
     const secondsSinceCandleOpen = (timestamp - BNBCandle[0]) / 1000;
     const data = await page.evaluate(
       async (BNBPrice, BTCPrice, secondsSinceCandleOpen) => {
-        // TODO
-        /*
-          get all rounds
-          iterate over expired rounds
-          if roundid doesnt exist in db
-          add round like we used to, without history
-        */
-
-        const slides = document.querySelectorAll(".swiper-slide");
-        for (item of Array.from(slides)) {
-          const [
-            _status,
-            _roundId,
-            ,
-            _payoutUP,
-            ,
-            ,
-            ,
-            _closePrice,
-            _diff,
-            ,
-            ,
-            _openPrice,
-            ,
-            ,
-            _poolValue,
-            ,
-            _payoutDOWN,
-          ] = item
-            .querySelector("div > div > div > div > div > div > div > div")
-            .innerText.replaceAll("\n", " ")
-            .split(" ");
-
-          const isExpired = await _isExpired(_status);
-          if (!isExpired || _payoutUP === "0x" || _payoutDOWN === "0x")
-            return {};
-
-          const existingRound = await _getPrediction(_roundId);
-          if (existingRound) return {};
-
-          const { parsedDiff, parsedPool, parsedUP, parsedDOWN } =
-            await _getParsedData(_diff, _poolValue, _payoutUP, _payoutDOWN);
-          const winningPayout = await _winningPayout(
-            _diff,
-            parsedUP,
-            parsedDOWN
-          );
-
-          const data = {
-            isExpired,
-            parsedDiff,
-            parsedPool,
-            winningPayout,
-            roundId: _roundId,
-            payoutUP: _payoutUP,
-            closePrice: _closePrice,
-            diff: _diff,
-            openPrice: _openPrice,
-            poolValue: _poolValue,
-            payoutDOWN: _payoutDOWN,
-          };
-
-          _savePrediction(data);
-        }
-
         // * Get Live Round Data *
         const [
           liveStatus,
@@ -237,6 +170,7 @@ const scrapePage = async () => {
 
         const currentlyMonitored = await getNext();
         const currentlyLive = await getLive();
+        const history = await getHistory();
 
         // * Goes here only if the live round that was being monitored closes *
         if (
@@ -267,15 +201,32 @@ const scrapePage = async () => {
             .innerText.replaceAll("\n", " ")
             .split(" ");
 
-          await save({
-            status: prevStatus,
+          const { parsedDiff, parsedPool, parsedUP, parsedDOWN } =
+            await _getParsedData(
+              prevDiff,
+              prevPoolValue,
+              prevPayoutUP,
+              prevPayoutDOWN
+            );
+          const winningPayout = await _winningPayout(
+            prevDiff,
+            parsedUP,
+            parsedDOWN
+          );
+
+          console.log("saveLive", currentlyLive, history);
+          _savePrediction({
+            parsedDiff,
+            parsedPool,
+            winningPayout,
             roundId: prevRoundId,
             payoutUP: prevPayoutUP,
-            oraclePrice: prevClosePrice,
+            closePrice: prevClosePrice,
             diff: prevDiff,
             openPrice: prevOpenPrice,
             poolValue: prevPoolValue,
             payoutDOWN: prevPayoutDOWN,
+            history: history,
           });
         }
 
@@ -302,8 +253,8 @@ const scrapePage = async () => {
         // * Save Live Round Data *
         if (
           currentlyLive.liveOraclePrice !== liveOraclePrice &&
-          liveRoundId !== currentlyMonitored.roundId &&
-          currentlyLive.roundId !== undefined
+          liveRoundId !== currentlyMonitored.roundId
+          // && currentlyLive.roundId !== undefined//
         ) {
           const datedEntries = {
             status: liveStatus,
@@ -325,6 +276,63 @@ const scrapePage = async () => {
             timeLeft,
           });
           setLiveDatedEntries(datedEntries);
+        }
+
+        const slides = document.querySelectorAll(".swiper-slide");
+        for (item of Array.from(slides)) {
+          const [
+            _status,
+            _roundId,
+            ,
+            _payoutUP,
+            ,
+            ,
+            ,
+            _closePrice,
+            _diff,
+            ,
+            ,
+            _openPrice,
+            ,
+            ,
+            _poolValue,
+            ,
+            _payoutDOWN,
+          ] = item
+            .querySelector("div > div > div > div > div > div > div > div")
+            .innerText.replaceAll("\n", " ")
+            .split(" ");
+
+          const isExpired = await _isExpired(_status);
+          if (!isExpired || _payoutUP === "0x" || _payoutDOWN === "0x")
+            continue;
+
+          const existingRound = await _getPrediction(_roundId);
+          if (existingRound) continue;
+
+          const { parsedDiff, parsedPool, parsedUP, parsedDOWN } =
+            await _getParsedData(_diff, _poolValue, _payoutUP, _payoutDOWN);
+          const winningPayout = await _winningPayout(
+            _diff,
+            parsedUP,
+            parsedDOWN
+          );
+
+          const data = {
+            parsedDiff,
+            parsedPool,
+            winningPayout,
+            roundId: _roundId,
+            payoutUP: _payoutUP,
+            closePrice: _closePrice,
+            diff: _diff,
+            openPrice: _openPrice,
+            poolValue: _poolValue,
+            payoutDOWN: _payoutDOWN,
+            history: [],
+          };
+
+          _savePrediction(data);
         }
       },
       BNBPrice,

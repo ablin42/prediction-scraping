@@ -56,6 +56,10 @@ class Scraping {
     return this.live;
   }
 
+  getLiveHistory() {
+    return this.liveDatedEntries;
+  }
+
   setLiveDatedEntries(entry) {
     this.liveDatedEntries.push(entry);
   }
