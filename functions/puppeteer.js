@@ -87,63 +87,6 @@ const scrapePage = async () => {
     const data = await page.evaluate(
       async (BNBPrice, BTCPrice, secondsSinceCandleOpen) => {
         // * Get Live Round Data *
-        const slides = document.querySelectorAll(".swiper-slide");
-        for (item of Array.from(slides)) {
-          const [
-            _status,
-            _roundId,
-            ,
-            _payoutUP,
-            ,
-            ,
-            ,
-            _closePrice,
-            _diff,
-            ,
-            ,
-            _openPrice,
-            ,
-            ,
-            _poolValue,
-            ,
-            _payoutDOWN,
-          ] = item
-            .querySelector("div > div > div > div > div > div > div > div")
-            .innerText.replaceAll("\n", " ")
-            .split(" ");
-
-          const isExpired = await _isExpired(_status);
-          if (!isExpired || _payoutUP === "0x" || _payoutDOWN === "0x")
-            continue;
-
-          const existingRound = await _getPrediction(_roundId);
-          if (existingRound) continue;
-
-          const { parsedDiff, parsedPool, parsedUP, parsedDOWN } =
-            await _getParsedData(_diff, _poolValue, _payoutUP, _payoutDOWN);
-          const winningPayout = await _winningPayout(
-            _diff,
-            parsedUP,
-            parsedDOWN
-          );
-
-          const data = {
-            parsedDiff,
-            parsedPool,
-            winningPayout,
-            roundId: _roundId,
-            payoutUP: _payoutUP,
-            closePrice: _closePrice,
-            diff: _diff,
-            openPrice: _openPrice,
-            poolValue: _poolValue,
-            payoutDOWN: _payoutDOWN,
-            history: [],
-          };
-
-          _savePrediction(data);
-        }
-
         const [
           liveStatus,
           liveRoundId,
@@ -300,6 +243,64 @@ const scrapePage = async () => {
             timeLeft,
           });
           setLiveDatedEntries(liveDatedEntries);
+        }
+
+        //!
+        const slides = document.querySelectorAll(".swiper-slide");
+        for (item of Array.from(slides)) {
+          const [
+            _status,
+            _roundId,
+            ,
+            _payoutUP,
+            ,
+            ,
+            ,
+            _closePrice,
+            _diff,
+            ,
+            ,
+            _openPrice,
+            ,
+            ,
+            _poolValue,
+            ,
+            _payoutDOWN,
+          ] = item
+            .querySelector("div > div > div > div > div > div > div > div")
+            .innerText.replaceAll("\n", " ")
+            .split(" ");
+
+          const isExpired = await _isExpired(_status);
+          if (!isExpired || _payoutUP === "0x" || _payoutDOWN === "0x")
+            continue;
+
+          const existingRound = await _getPrediction(_roundId);
+          if (existingRound) continue;
+
+          const { parsedDiff, parsedPool, parsedUP, parsedDOWN } =
+            await _getParsedData(_diff, _poolValue, _payoutUP, _payoutDOWN);
+          const winningPayout = await _winningPayout(
+            _diff,
+            parsedUP,
+            parsedDOWN
+          );
+
+          const data = {
+            parsedDiff,
+            parsedPool,
+            winningPayout,
+            roundId: _roundId,
+            payoutUP: _payoutUP,
+            closePrice: _closePrice,
+            diff: _diff,
+            openPrice: _openPrice,
+            poolValue: _poolValue,
+            payoutDOWN: _payoutDOWN,
+            history: [],
+          };
+
+          _savePrediction(data);
         }
       },
       BNBPrice,
