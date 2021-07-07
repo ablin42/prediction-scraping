@@ -1,7 +1,12 @@
 // @EXTERNALS
 const puppeteer = require("puppeteer");
 // @QUERIES
-const { getPrediction, getLastPrediction } = require("../queries/predictions");
+const {
+  getPrediction,
+  getLastPrediction,
+  addPrediction,
+} = require("../queries/predictions");
+const { incrementTotalAverage } = require("../queries/averages");
 const { getTickerPrice, getCandle } = require("../queries/binance");
 const { setStatus, getStatus } = require("../queries/status");
 // @FUNCTIONS
@@ -16,7 +21,7 @@ const { Rounds } = require("../classes/rounds");
 const scrapePage = async () => {
   // * INITIALIZE PUPPETEER & ROUNDS CLASS *
   const options = {
-    // headless: false,
+    headless: false,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   };
   const browser = await puppeteer.launch(options);
