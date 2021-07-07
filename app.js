@@ -19,7 +19,7 @@ const {
 const Average = require("./models/Average");
 // @MISC
 const utils = require("./helpers/utils");
-const { AVERAGE_ID } = require("../constants");
+const { AVERAGE_ID } = require("./constants");
 
 mongoose.connect(
   process.env.DB_CONNECTION,
