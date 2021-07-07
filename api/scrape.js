@@ -1,14 +1,16 @@
+// @EXTERNALS
 const express = require("express");
 const router = express.Router();
 require("dotenv").config();
-
+// @QUERIES
+const { getPredictionByRange } = require("../queries/predictions");
+const { periodToHours } = require("../functions/parser");
+// @FUNCTIONS
 const {
   getAverages,
   getPredictionData,
   getEsperance,
-} = require("../helpers/data");
-const { getPredictionByRange } = require("../helpers/query");
-const { periodToHours } = require("../helpers/utils");
+} = require("../functions/data");
 
 router.get("/:period", async (req, res) => {
   try {
