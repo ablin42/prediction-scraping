@@ -21,7 +21,7 @@ const { Rounds } = require("../classes/rounds");
 const scrapePage = async () => {
   // * INITIALIZE PUPPETEER & ROUNDS CLASS *
   const options = {
-    headless: false,
+    // headless: false,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   };
   const browser = await puppeteer.launch(options);
