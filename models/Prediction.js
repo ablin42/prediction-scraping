@@ -1,3 +1,4 @@
+// @EXTERNALS
 const mongoose = require("mongoose");
 
 const PredictionSchema = new mongoose.Schema(
