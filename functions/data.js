@@ -2,7 +2,7 @@
 const { getAllPredictions } = require("../queries/predictions");
 const { updateTotalAverage } = require("../queries/averages");
 // @FUNCTIONS
-const { getParsedData, getWinningPayout } = require("./parser");
+const { getParsedData } = require("./parser");
 // @CLASSES
 const { TotalAverages } = require("../classes/average");
 
@@ -11,13 +11,13 @@ function getPredictionData(entries) {
 
   const averages = new TotalAverages();
   entries.forEach((entry) => {
-    const { parsedDiff, parsedPool, parsedUP, parsedDOWN } = getParsedData(
-      entry.diff,
-      entry.poolValue,
-      entry.payoutUP,
-      entry.payoutDOWN
-    );
-    const winningPayout = getWinningPayout(parsedDiff, parsedUP, parsedDOWN);
+    const { parsedDiff, parsedPool, parsedUP, parsedDOWN, winningPayout } =
+      getParsedData(
+        entry.diff,
+        entry.poolValue,
+        entry.payoutUP,
+        entry.payoutDOWN
+      );
 
     averages.addPayout(winningPayout);
     averages.addPool(parsedPool);

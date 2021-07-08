@@ -18,11 +18,15 @@ const _payout = function (value) {
 
 // * RETURNS AN OBJECT WITH PARSED DATA *
 const getParsedData = function (diff, pool, payoutUP, payoutDOWN) {
+  const pDiff = _diff(diff);
+  const pUP = _payout(payoutUP);
+  const pDOWN = _payout(payoutDOWN);
   return {
-    parsedDiff: _diff(diff),
+    parsedDiff: pDiff,
     parsedPool: _pool(pool),
-    parsedUP: _payout(payoutUP),
-    parsedDOWN: _payout(payoutDOWN),
+    parsedUP: pUP,
+    parsedDOWN: pDOWN,
+    winningPayout: getWinningPayout(pDiff, pUP, pDOWN),
   };
 };
 
@@ -46,6 +50,40 @@ const periodToHours = function (period) {
   return RANGE_OPTIONS[periodKey[0]];
 };
 
+// * RETURNS AN OBJECT WITH NEEDED DATA *
+const getObjectFromDOM = async (DOM) => {
+  const [
+    status,
+    roundId,
+    ,
+    payoutUP,
+    ,
+    ,
+    ,
+    oraclePrice,
+    diff,
+    ,
+    ,
+    openPrice,
+    ,
+    ,
+    poolValue,
+    ,
+    payoutDOWN,
+  ] = DOM;
+
+  return {
+    status,
+    roundId,
+    payoutUP,
+    oraclePrice,
+    diff,
+    openPrice,
+    poolValue,
+    payoutDOWN,
+  };
+};
+
 module.exports = {
   _diff,
   _pool,
@@ -54,4 +92,5 @@ module.exports = {
   isExpired,
   getParsedData,
   periodToHours,
+  getObjectFromDOM,
 };
