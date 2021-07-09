@@ -27,7 +27,7 @@ router.get("/:period", async (req, res) => {
       -1
     );
 
-    const obj = { ...averages, safeEsperance };
+    const obj = { ...averages, safeEsperance, entries };
     return res.status(200).json(obj);
   } catch (err) {
     console.log("ERROR:", err, req.headers, req.ipAddress);

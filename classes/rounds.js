@@ -7,6 +7,12 @@ class Rounds {
     this.liveDatedEntries = [];
   }
 
+  openRound() {
+    this.liveDatedEntries = this.nextDatedEntries;
+    this.live = this.next;
+    this.nextDatedEntries = [];
+  }
+
   setLive(live) {
     this.live = live;
   }
@@ -24,14 +30,6 @@ class Rounds {
   }
 
   setNext(next) {
-    // * IF NEXT ROUND WENT LIVE *
-    // * CREATE A NEW NEXT ROUND AND SET LIVE ROUND WITH OLD NEXT VALUES *
-    if (this.next.roundId !== next.roundId && this.next.roundId !== undefined) {
-      this.liveDatedEntries = this.nextDatedEntries;
-      this.live = this.next;
-
-      this.nextDatedEntries = [];
-    }
     this.next = next;
   }
 

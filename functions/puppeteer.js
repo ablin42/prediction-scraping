@@ -11,7 +11,12 @@ const { getTickerPrice, getCandle } = require("../queries/binance");
 const { setStatus, getStatus } = require("../queries/status");
 // @FUNCTIONS
 const mailer = require("./contact");
-const { isExpired, getParsedData, getObjectFromDOM } = require("./parser");
+const {
+  isExpired,
+  getParsedData,
+  getObjectFromDOM,
+  getNextFromDom,
+} = require("./parser");
 const { formatAvg } = require("./data");
 // @CLASSES
 const { Rounds } = require("../classes/rounds");
@@ -21,7 +26,7 @@ const { Rounds } = require("../classes/rounds");
 const scrapePage = async () => {
   // * INITIALIZE PUPPETEER & ROUNDS CLASS *
   const options = {
-    // headless: false,
+    //headless: false,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   };
   const browser = await puppeteer.launch(options);
@@ -40,7 +45,12 @@ const scrapePage = async () => {
   await page.exposeFunction("_getObjectFromDOM", (document) =>
     getObjectFromDOM(document)
   );
+  await page.exposeFunction("_getNextFromDom", (document) =>
+    getNextFromDom(document)
+  );
+
   // * ROUNDS CLASS METHODS *
+  await page.exposeFunction("_openRound", () => newRounds.openRound());
   await page.exposeFunction("setNext", (next) => newRounds.setNext(next));
   await page.exposeFunction("getNext", () => newRounds.getNext());
   await page.exposeFunction("setNextDatedEntries", (entry) =>
@@ -73,7 +83,11 @@ const scrapePage = async () => {
 
   // * WAIT FOR PANCAKESWAP ROUNDS TO BE LOADED INTO DOM *
   // * COLLECTS DATA EVERY 10 SECONDS *
-  await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
+  setInterval(async function () {
+    await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
+    await page.reload({ timeout: 1000 * 60 * 60 * 4 });
+  }, 1000 * 60 * 60 * 4);
+
   setInterval(async function () {
     const BNBPrice = formatAvg(await getTickerPrice("BNB"));
     const BTCPrice = formatAvg(await getTickerPrice("BTC"));
@@ -90,7 +104,7 @@ const scrapePage = async () => {
             .split(" ")
         );
         // * Get Next Round Data *
-        const NEXT_DOM = await _getObjectFromDOM(
+        const NEXT_DOM = await _getNextFromDom(
           document
             .querySelector(".swiper-slide-next")
             .innerText.replaceAll("\n", " ")
@@ -104,7 +118,6 @@ const scrapePage = async () => {
 
         const NEXT = await getNext();
         const LIVE = await getLive();
-        const HISTORY = await getHistory();
 
         // * Save LIVE round that just closed to DB *
         if (LIVE_DOM.roundId !== LIVE.roundId && LIVE?.roundId !== undefined) {
@@ -116,6 +129,7 @@ const scrapePage = async () => {
               .split(" ")
           );
 
+          const HISTORY = await getHistory();
           const { parsedDiff, parsedPool, winningPayout } =
             await _getParsedData(
               PREV_DOM.diff,
@@ -144,6 +158,8 @@ const scrapePage = async () => {
           NEXT.roundId !== NEXT_DOM.roundId ||
           NEXT.poolValue !== NEXT_DOM.poolValue
         ) {
+          if (NEXT.roundId !== NEXT_DOM.roundId) await _openRound();
+
           const nextDatedEntries = {
             status: NEXT_DOM.status,
             timeLeft,
@@ -166,7 +182,7 @@ const scrapePage = async () => {
 
         // * Save Live Round Data To Class *
         if (
-          LIVE.liveOraclePrice !== LIVE_DOM.oraclePrice &&
+          LIVE.oraclePrice !== LIVE_DOM.oraclePrice ||
           LIVE_DOM.roundId !== NEXT_DOM.roundId
         ) {
           const liveDatedEntries = {

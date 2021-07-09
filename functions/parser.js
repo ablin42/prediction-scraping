@@ -84,6 +84,19 @@ const getObjectFromDOM = async (DOM) => {
   };
 };
 
+const getNextFromDom = async (DOM) => {
+  const [status, roundId, , payoutUP, , , , poolValue, , , , , payoutDOWN] =
+    DOM;
+
+  return {
+    status,
+    roundId,
+    payoutUP,
+    poolValue,
+    payoutDOWN,
+  };
+};
+
 module.exports = {
   _diff,
   _pool,
@@ -93,4 +106,5 @@ module.exports = {
   getParsedData,
   periodToHours,
   getObjectFromDOM,
+  getNextFromDom,
 };
