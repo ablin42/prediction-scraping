@@ -4,6 +4,7 @@ const router = express.Router();
 require("dotenv").config();
 // @QUERIES
 const { getPredictionByRange } = require("../queries/predictions");
+const { getCandle } = require("../queries/binance");
 const { periodToHours } = require("../functions/parser");
 // @FUNCTIONS
 const {
@@ -11,6 +12,20 @@ const {
   getPredictionData,
   getEsperance,
 } = require("../functions/data");
+
+router.get("/timing", async (req, res) => {
+  try {
+    const BNBCandle = await getCandle("BNB");
+    const timestamp = +new Date();
+    const secondsSinceCandleOpen = (timestamp - BNBCandle[0]) / 1000;
+
+    const obj = { candleTiming: secondsSinceCandleOpen, BNBCandle };
+    return res.status(200).json(obj);
+  } catch (err) {
+    console.log("ERROR:", err, req.headers, req.ipAddress);
+    return res.status(200).json({ error: true, message: err.message });
+  }
+});
 
 // * RETURN ROUNDS FROM X HOURS AGO *
 // ? @PARAM: "period" => A string identifying a key-value pair

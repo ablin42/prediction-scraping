@@ -7,6 +7,7 @@ const {
   addPrediction,
 } = require("../queries/predictions");
 const { incrementTotalAverage } = require("../queries/averages");
+const { addOracle } = require("../queries/oracle");
 const { getTickerPrice, getCandle } = require("../queries/binance");
 const { setStatus, getStatus } = require("../queries/status");
 // @FUNCTIONS
@@ -39,6 +40,7 @@ const scrapePage = async () => {
   // * QUERIES *
   await page.exposeFunction("_savePrediction", savePrediction);
   await page.exposeFunction("_getPrediction", getPrediction);
+  await page.exposeFunction("saveOracle", addOracle);
   // * PARSER *
   await page.exposeFunction("_isExpired", isExpired);
   await page.exposeFunction("_getParsedData", getParsedData);
@@ -118,6 +120,17 @@ const scrapePage = async () => {
 
         const NEXT = await getNext();
         const LIVE = await getLive();
+
+        if (LIVE.oraclePrice !== LIVE_DOM.oraclePrice) {
+          saveOracle({
+            roundId: LIVE_DOM.roundId,
+            oraclePrice: LIVE_DOM.oraclePrice.substr(1),
+            BNBPrice,
+            BTCPrice,
+            secondsSinceCandleOpen,
+            timeLeft,
+          });
+        }
 
         // * Save LIVE round that just closed to DB *
         if (LIVE_DOM.roundId !== LIVE.roundId && LIVE?.roundId !== undefined) {
@@ -204,7 +217,9 @@ const scrapePage = async () => {
             openPrice: LIVE_DOM.openPrice,
             timeLeft,
           });
-          setLiveDatedEntries(liveDatedEntries);
+          //! v
+          if (LIVE.oraclePrice !== LIVE_DOM.oraclePrice)
+            setLiveDatedEntries(liveDatedEntries);
         }
 
         // * Get All Expired Rounds and Save them *
