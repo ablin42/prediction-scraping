@@ -121,7 +121,10 @@ const scrapePage = async () => {
         const NEXT = await getNext();
         const LIVE = await getLive();
 
-        if (LIVE.oraclePrice !== LIVE_DOM.oraclePrice) {
+        if (
+          LIVE.oraclePrice !== LIVE_DOM.oraclePrice &&
+          LIVE_DOM.oraclePrice !== undefined
+        ) {
           saveOracle({
             roundId: LIVE_DOM.roundId,
             oraclePrice: LIVE_DOM.oraclePrice.substr(1),
