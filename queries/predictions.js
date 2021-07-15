@@ -28,7 +28,7 @@ async function addPrediction(
   if (err) {
     console.log("ERROR SAVING PREDICTION", err.message);
     // * try to add only history if it fails *
-    var [err, saved] = await utils.promise(
+    [err, saved] = await utils.promise(
       Prediction.findOneAndUpdate({ roundId }, { $set: { history } })
     );
     if (err) console.log(`ERROR FINDING AND UPDATING ROUND [${roundId}]`, err);

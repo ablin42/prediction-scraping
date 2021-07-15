@@ -1,5 +1,3 @@
-// @EXTERNALS
-const axios = require("axios").default;
 // @MODELS
 const Oracle = require("../models/Oracle");
 // @MISC
@@ -36,7 +34,15 @@ async function addOracle({
   return saved;
 }
 
+async function getAllOracle() {
+  var [err, saved] = await utils.promise(Oracle.find());
+  if (err) console.log("ERROR SAVING ORACLE", err.message);
+
+  return saved;
+}
+
 module.exports = {
   getLastOracle,
   addOracle,
+  getAllOracle,
 };

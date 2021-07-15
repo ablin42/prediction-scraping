@@ -1,24 +1,15 @@
 // @EXTERNALS
 const puppeteer = require("puppeteer");
-// @QUERIES
-const {
-  getPrediction,
-  getLastPrediction,
-  addPrediction,
-} = require("../queries/predictions");
-const { incrementTotalAverage } = require("../queries/averages");
-const { addOracle } = require("../queries/oracle");
-const { getTickerPrice, getCandle } = require("../queries/binance");
-const { setStatus, getStatus } = require("../queries/status");
 // @FUNCTIONS
-const mailer = require("./contact");
+const { getObjectFromDOM, getNextFromDom } = require("./parser");
 const {
-  isExpired,
-  getParsedData,
-  getObjectFromDOM,
-  getNextFromDom,
-} = require("./parser");
-const { formatAvg } = require("./data");
+  getEvaluateParams,
+  saveOracle,
+  saveRound,
+  formatForClass,
+  saveExpiredRounds,
+  checkStatus,
+} = require("./puppeteer_functions");
 // @CLASSES
 const { Rounds } = require("../classes/rounds");
 
@@ -27,30 +18,36 @@ const { Rounds } = require("../classes/rounds");
 const scrapePage = async () => {
   // * INITIALIZE PUPPETEER & ROUNDS CLASS *
   const options = {
-    //headless: false,
+    // headless: false,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   };
   const browser = await puppeteer.launch(options);
   const page = await browser.newPage();
   const newRounds = new Rounds();
   const INTERVAL = 1000 * 60 * 10;
+  let STATUS = "UP";
 
   // * EXPOSE FUNCTIONS FOR PUPPETEER *
-  // TODO try to reduce this to a minimum
-  // * QUERIES *
-  await page.exposeFunction("_savePrediction", savePrediction);
-  await page.exposeFunction("_getPrediction", getPrediction);
-  await page.exposeFunction("saveOracle", addOracle);
   // * PARSER *
-  await page.exposeFunction("_isExpired", isExpired);
-  await page.exposeFunction("_getParsedData", getParsedData);
   await page.exposeFunction("_getObjectFromDOM", (document) =>
     getObjectFromDOM(document)
   );
   await page.exposeFunction("_getNextFromDom", (document) =>
     getNextFromDom(document)
   );
-
+  // * FUNCTIONS *
+  await page.exposeFunction("_saveExpiredRounds", (DOM) =>
+    saveExpiredRounds(DOM)
+  );
+  await page.exposeFunction("_formatForClass", (DOM, infos) =>
+    formatForClass(DOM, infos)
+  );
+  await page.exposeFunction("_saveRound", (DOM, HISTORY) =>
+    saveRound(DOM, HISTORY)
+  );
+  await page.exposeFunction("_saveOracle", (DOM, infos) =>
+    saveOracle(DOM, infos)
+  );
   // * ROUNDS CLASS METHODS *
   await page.exposeFunction("_openRound", () => newRounds.openRound());
   await page.exposeFunction("setNext", (next) => newRounds.setNext(next));
@@ -68,34 +65,21 @@ const scrapePage = async () => {
 
   // * MONITOR LAST ROUND ADDED TO DETECT IF PANCAKESWAP BETS SERVICES ARE DOWN *
   setInterval(async function () {
-    const status = await getStatus();
-    const lastPrediction = await getLastPrediction();
-    const timestamp = +new Date();
-
-    if (timestamp - lastPrediction.date > INTERVAL && status.isUp) {
-      await setStatus(false);
-      if (await mailer(process.env.EMAIL, "Market is [ DOWN ]", ""))
-        console.log("An error occured while sending the mail");
-    } else if (timestamp - lastPrediction.date < INTERVAL && !status.isUp) {
-      await setStatus(true);
-      if (await mailer(process.env.EMAIL, "Market is [ UP ]", ""))
-        console.log("An error occured while sending the mail");
-    }
+    STATUS = checkStatus();
   }, INTERVAL);
 
   // * WAIT FOR PANCAKESWAP ROUNDS TO BE LOADED INTO DOM *
   // * COLLECTS DATA EVERY 10 SECONDS *
   setInterval(async function () {
     await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
-    await page.reload({ timeout: 1000 * 60 * 60 * 4 });
-  }, 1000 * 60 * 60 * 4);
+    await page.reload({ timeout: 1000 * 60 * 60 * 3 });
+  }, 1000 * 60 * 60 * 3);
 
   setInterval(async function () {
-    const BNBPrice = formatAvg(await getTickerPrice("BNB"));
-    const BTCPrice = formatAvg(await getTickerPrice("BTC"));
-    const BNBCandle = await getCandle("BNB");
-    const timestamp = +new Date();
-    const secondsSinceCandleOpen = (timestamp - BNBCandle[0]) / 1000;
+    if (STATUS === "DOWN") return;
+    const { BNBPrice, BTCPrice, secondsSinceCandleOpen } =
+      await getEvaluateParams();
+
     await page.evaluate(
       async (BNBPrice, BTCPrice, secondsSinceCandleOpen) => {
         // * Get Live Round Data *
@@ -105,6 +89,7 @@ const scrapePage = async () => {
             .innerText.replaceAll("\n", " ")
             .split(" ")
         );
+
         // * Get Next Round Data *
         const NEXT_DOM = await _getNextFromDom(
           document
@@ -112,6 +97,7 @@ const scrapePage = async () => {
             .innerText.replaceAll("\n", " ")
             .split(" ")
         );
+
         // * Get Timer *
         const timeLeft = document.querySelector(
           "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1) > div:nth-child(1) > div > div > div:nth-child(1)  > div:nth-child(3) > div > div:nth-child(1)  > div > div:nth-child(1) > div:nth-child(1)"
@@ -120,22 +106,19 @@ const scrapePage = async () => {
 
         const NEXT = await getNext();
         const LIVE = await getLive();
-
+        // * Add oracle entry if oracle price changed *
         if (
           LIVE.oraclePrice !== LIVE_DOM.oraclePrice &&
           LIVE_DOM.oraclePrice !== undefined
-        ) {
-          saveOracle({
-            roundId: LIVE_DOM.roundId,
-            oraclePrice: LIVE_DOM.oraclePrice.substr(1),
+        )
+          await _saveOracle(LIVE_DOM, {
             BNBPrice,
             BTCPrice,
-            secondsSinceCandleOpen,
             timeLeft,
+            secondsSinceCandleOpen,
           });
-        }
 
-        // * Save LIVE round that just closed to DB *
+        // * Save LIVE round that just closed to DATABASE *
         if (LIVE_DOM.roundId !== LIVE.roundId && LIVE?.roundId !== undefined) {
           // * Get Prev Round Data (= round that was monitored until now) *
           const PREV_DOM = await _getObjectFromDOM(
@@ -144,29 +127,8 @@ const scrapePage = async () => {
               .innerText.replaceAll("\n", " ")
               .split(" ")
           );
-
           const HISTORY = await getHistory();
-          const { parsedDiff, parsedPool, winningPayout } =
-            await _getParsedData(
-              PREV_DOM.diff,
-              PREV_DOM.poolValue,
-              PREV_DOM.payoutUP,
-              PREV_DOM.payoutDOWN
-            );
-
-          _savePrediction({
-            parsedDiff,
-            parsedPool,
-            winningPayout,
-            roundId: PREV_DOM.roundId,
-            payoutUP: PREV_DOM.payoutUP,
-            closePrice: PREV_DOM.oraclePrice,
-            diff: PREV_DOM.diff,
-            openPrice: PREV_DOM.openPrice,
-            poolValue: PREV_DOM.poolValue,
-            payoutDOWN: PREV_DOM.payoutDOWN,
-            history: HISTORY,
-          });
+          await _saveRound(PREV_DOM, HISTORY);
         }
 
         // * Save Next Round data to Class*
@@ -176,24 +138,16 @@ const scrapePage = async () => {
         ) {
           if (NEXT.roundId !== NEXT_DOM.roundId) await _openRound();
 
-          const nextDatedEntries = {
-            status: NEXT_DOM.status,
+          const { datedEntry, head } = await _formatForClass(NEXT_DOM, {
             timeLeft,
             secondsSinceCandleOpen,
             BNBPrice,
             BTCPrice,
             oraclePrice: LIVE_DOM.oraclePrice,
-            payoutUP: NEXT_DOM.payoutUP,
-            payoutDOWN: NEXT_DOM.payoutDOWN,
-            poolValue: NEXT_DOM.poolValue,
-          };
-          setNext({
-            status: NEXT_DOM.status,
-            roundId: NEXT_DOM.roundId,
-            poolValue: NEXT_DOM.poolValue,
-            timeLeft,
           });
-          setNextDatedEntries(nextDatedEntries);
+
+          setNext(head);
+          setNextDatedEntries(datedEntry);
         }
 
         // * Save Live Round Data To Class *
@@ -201,74 +155,29 @@ const scrapePage = async () => {
           LIVE.oraclePrice !== LIVE_DOM.oraclePrice ||
           LIVE_DOM.roundId !== NEXT_DOM.roundId
         ) {
-          const liveDatedEntries = {
-            status: LIVE_DOM.status,
+          const { datedEntry, head } = await _formatForClass(LIVE_DOM, {
             timeLeft,
             secondsSinceCandleOpen,
             BNBPrice,
             BTCPrice,
-            oraclePrice: LIVE_DOM.oraclePrice,
-            diff: LIVE_DOM.diff,
-            payoutUP: LIVE_DOM.payoutUP,
-            payoutDOWN: LIVE_DOM.payoutDOWN,
-            poolValue: LIVE_DOM.poolValue,
-          };
-          setLive({
-            status: LIVE_DOM.status,
-            roundId: LIVE_DOM.roundId,
-            oraclePrice: LIVE_DOM.oraclePrice,
-            openPrice: LIVE_DOM.openPrice,
-            timeLeft,
           });
-          //! v
+
+          setLive(head);
           if (LIVE.oraclePrice !== LIVE_DOM.oraclePrice)
-            setLiveDatedEntries(liveDatedEntries);
+            setLiveDatedEntries(datedEntry);
         }
 
-        // * Get All Expired Rounds and Save them *
+        // * Get All Rounds *
         const slides = document.querySelectorAll(".swiper-slide");
         for (item of Array.from(slides)) {
-          // * Get Expired Round Data *
           const EXP_DOM = await _getObjectFromDOM(
             item
               .querySelector("div > div > div > div > div > div > div > div")
               .innerText.replaceAll("\n", " ")
               .split(" ")
           );
-
-          const isExpired = await _isExpired(EXP_DOM.status);
-          if (
-            !isExpired ||
-            EXP_DOM.payoutUP === "0x" ||
-            EXP_DOM.payoutDOWN === "0x"
-          )
-            continue;
-
-          const existingRound = await _getPrediction(EXP_DOM.roundId);
-          if (existingRound) continue;
-
-          const { parsedDiff, parsedPool, winningPayout } =
-            await _getParsedData(
-              EXP_DOM.diff,
-              EXP_DOM.poolValue,
-              EXP_DOM.payoutUP,
-              EXP_DOM.payoutDOWN
-            );
-
-          const data = {
-            parsedDiff,
-            parsedPool,
-            winningPayout,
-            roundId: EXP_DOM.roundId,
-            payoutUP: EXP_DOM.payoutUP,
-            closePrice: EXP_DOM.oraclePrice,
-            diff: EXP_DOM.diff,
-            openPrice: EXP_DOM.openPrice,
-            poolValue: EXP_DOM.poolValue,
-            payoutDOWN: EXP_DOM.payoutDOWN,
-            history: [],
-          };
-          _savePrediction(data);
+          // * Save all expired rounds not already in DB *
+          await _saveExpiredRounds(EXP_DOM);
         }
       },
       BNBPrice,
@@ -278,43 +187,6 @@ const scrapePage = async () => {
   }, 10000);
 };
 
-// * ADD A ROUND TO DATABASE & INCREMENT AVERAGES WITH ITS VALUES *
-async function savePrediction(entry) {
-  const {
-    parsedDiff,
-    parsedPool,
-    winningPayout,
-    roundId,
-    payoutUP,
-    closePrice,
-    diff,
-    openPrice,
-    poolValue,
-    payoutDOWN,
-    history,
-  } = entry;
-
-  const addedPrediction = await addPrediction(
-    roundId,
-    payoutUP,
-    closePrice,
-    diff,
-    openPrice,
-    poolValue,
-    payoutDOWN,
-    history
-  );
-
-  if (addedPrediction)
-    averages = await incrementTotalAverage({
-      totalPayout: winningPayout,
-      totalDiff: parsedDiff,
-      totalPool: parsedPool,
-      totalSaved: 1,
-    });
-}
-
 module.exports = {
   scrapePage,
-  savePrediction,
 };
