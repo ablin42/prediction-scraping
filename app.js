@@ -73,9 +73,9 @@ app.use((req, res, next) => {
 app.use(function (req, res, next) {
   // * ALLOWED ORIGINS *
   const allowedOrigins = [
-    "https://pcsdata.herokuapp.com/",
+    "https://pcsdata.herokuapp.com",
     "http://localhost:3000",
-    "https://cucksistants.herokuapp.com/",
+    "https://cucksistants.herokuapp.com",
   ];
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin))
