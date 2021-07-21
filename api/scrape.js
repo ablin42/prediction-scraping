@@ -4,7 +4,11 @@ const router = express.Router();
 require("dotenv").config();
 // @QUERIES
 const { getPredictionByRange } = require("../queries/predictions");
-const { getLastOracle, getAllOracle } = require("../queries/oracle");
+const {
+  getLastOracle,
+  getAllOracle,
+  getRoundOracle,
+} = require("../queries/oracle");
 const { getCandle } = require("../queries/binance");
 const { periodToHours } = require("../functions/parser");
 // @FUNCTIONS
@@ -13,6 +17,23 @@ const {
   getPredictionData,
   getEsperance,
 } = require("../functions/data");
+// @MODELS
+const Prediction = require("../models/Prediction");
+const utils = require("../helpers/utils");
+
+router.get("/current-oracle", async (req, res) => {
+  try {
+    const lastOracle = await getLastOracle();
+    const roundOracle = await getRoundOracle(lastOracle.roundId);
+    const sorted = roundOracle.sort((a, b) => (a.date > b.date && -1) || 1);
+
+    return res.status(200).json(sorted);
+  } catch (err) {
+    console.log("HOME ROUTE ERROR:", err, req.headers, req.ipAddress);
+
+    return res.status(200).send("bide");
+  }
+});
 
 router.get("/oracle", async (req, res) => {
   try {
@@ -41,16 +62,27 @@ router.get("/oracle", async (req, res) => {
 router.get("/timing", async (req, res) => {
   try {
     const BNBCandle = await getCandle("BNB");
-    const timestamp = +new Date();
-    const secondsSinceCandleOpen = (timestamp - BNBCandle[0]) / 1000;
+    // const timestamp = +new Date();
+    // const secondsSinceCandleOpen = (timestamp - BNBCandle[0]) / 1000;
     const oracle = await getLastOracle();
-    const secondsSinceOraclePriceChange = (timestamp - oracle.date) / 1000;
+
+    // const secondsSinceOraclePriceChange = (timestamp - oracle.date) / 1000;
+    // const oracles = await getAllOracle();
+    // const diffList = [];
+    // for (let i = 0; i < oracles.length - 1; i++) {
+    //   const diff = oracles[i + 1].date - oracles[i].date;
+    //   diffList.push(parseInt((diff / 1000).toFixed(0)));
+    // }
+    // const average =
+    //   diffList.filter((item) => item > 20).reduce((a, b) => a + b) /
+    //   diffList.length;
 
     const obj = {
-      candleTiming: secondsSinceCandleOpen,
-      BNBCandle,
+      candleTiming: BNBCandle[0],
+      // BNBCandle,
       oracle,
-      secondsSinceOraclePriceChange,
+      // secondsSinceOraclePriceChange,
+      // averageOracleRefresh: Math.round(average * 100) / 100,
     };
     return res.status(200).json(obj);
   } catch (err) {

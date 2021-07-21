@@ -12,6 +12,16 @@ async function getLastOracle() {
   return result[0];
 }
 
+async function getRoundOracle(roundId) {
+  const [err, roundOracle] = await utils.promise(
+    Oracle.find({ roundId: roundId })
+  );
+  if (err)
+    console.log("An error occured while fetching this round's oracle data");
+
+  return roundOracle;
+}
+
 async function addOracle({
   roundId,
   oraclePrice,
@@ -43,6 +53,7 @@ async function getAllOracle() {
 
 module.exports = {
   getLastOracle,
+  getRoundOracle,
   addOracle,
   getAllOracle,
 };

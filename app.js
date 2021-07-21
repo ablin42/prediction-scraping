@@ -75,6 +75,7 @@ app.use(function (req, res, next) {
   const allowedOrigins = [
     "https://pcsdata.herokuapp.com/",
     "http://localhost:3000",
+    "https://cucksistants.herokuapp.com/",
   ];
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin))
