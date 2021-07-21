@@ -57,6 +57,26 @@ async function getPrediction(roundId) {
 // ? @PARAM: hours => Number of hours
 async function getPredictionByRange(hours) {
   const [err, result] = await utils.promise(
+    Prediction.find(
+      {
+        createdAt: {
+          $lt: new Date(),
+          $gte: new Date(new Date().getTime() - hours * 60 * 60 * 1000),
+        },
+      },
+      {
+        history: 0,
+      }
+    )
+  );
+  if (err) console.log("Error fetching between date range");
+  return result;
+}
+
+// * GET ALL PREDICTIONS SINCE X HOURS *
+// ? @PARAM: hours => Number of hours
+async function getPredictionByRangeWithHistory(hours) {
+  const [err, result] = await utils.promise(
     Prediction.find({
       createdAt: {
         $lt: new Date(),
@@ -83,4 +103,5 @@ module.exports = {
   getPredictionByRange,
   getPrediction,
   getAllPredictions,
+  getPredictionByRangeWithHistory,
 };
