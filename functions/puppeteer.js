@@ -71,9 +71,9 @@ const scrapePage = async () => {
   // * WAIT FOR PANCAKESWAP ROUNDS TO BE LOADED INTO DOM *
   // * COLLECTS DATA EVERY 10 SECONDS *
   setInterval(async function () {
-    await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
     await page.reload({ timeout: 1000 * 60 * 1 * 1 });
-  }, 1000 * 60 * 1 * 1);
+    await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
+  }, 1000 * 60 * 1 * 2);
 
   setInterval(async function () {
     if (STATUS === "DOWN") return;

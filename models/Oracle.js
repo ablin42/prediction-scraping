@@ -11,6 +11,10 @@ const OracleSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    openPrice: {
+      type: Number,
+      required: true,
+    },
     BNBPrice: {
       type: Number,
       required: true,

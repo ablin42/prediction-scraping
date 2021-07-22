@@ -125,6 +125,7 @@ async function saveOracle(DOM, infos) {
     addOracle({
       roundId: DOM.roundId,
       oraclePrice: DOM.oraclePrice.substr(1),
+      openPrice: DOM.openPrice.substr(1),
       BNBPrice,
       BTCPrice,
       secondsSinceCandleOpen,

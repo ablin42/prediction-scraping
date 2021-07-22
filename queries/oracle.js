@@ -25,6 +25,7 @@ async function getRoundOracle(roundId) {
 async function addOracle({
   roundId,
   oraclePrice,
+  openPrice,
   BNBPrice,
   BTCPrice,
   secondsSinceCandleOpen,
@@ -33,6 +34,7 @@ async function addOracle({
   const oracle = new Oracle({
     roundId,
     oraclePrice,
+    openPrice,
     BNBPrice,
     BTCPrice,
     secondsSinceCandleOpen,
