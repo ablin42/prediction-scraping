@@ -22,6 +22,32 @@ async function getRoundOracle(roundId) {
   return roundOracle;
 }
 
+// * GET ALL ORACLES SINCE X HOURS *
+// ? @PARAM: hours => Number of hours
+async function getOracleByLimit(limit) {
+  const [err, result] = await utils.promise(
+    Oracle.find().sort({ _id: -1 }).limit(limit)
+  );
+  // console.log(result[0], result[1], "!!!");
+  if (err) console.log("Error fetching oracles between date range");
+  return result;
+}
+
+// * GET ALL ORACLES SINCE X HOURS *
+// ? @PARAM: hours => Number of hours
+async function getOracleByRange(hours) {
+  const [err, result] = await utils.promise(
+    Oracle.find({
+      createdAt: {
+        $lt: new Date(),
+        $gte: new Date(new Date().getTime() - hours * 60 * 60 * 1000),
+      },
+    })
+  );
+  if (err) console.log("Error fetching oracles between date range");
+  return result;
+}
+
 async function addOracle({
   roundId,
   oraclePrice,
@@ -58,4 +84,6 @@ module.exports = {
   getRoundOracle,
   addOracle,
   getAllOracle,
+  getOracleByRange,
+  getOracleByLimit,
 };

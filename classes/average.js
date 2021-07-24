@@ -2,7 +2,8 @@
 class TotalAverages {
   constructor() {
     this.totalPayout = 0;
-    this.totalDiff = 0;
+    this.totalDiffUP = 0;
+    this.totalDiffDOWN = 0;
     this.totalPool = 0;
     this.totalPayoutUP = 0;
     this.nbRoundUP = 0;
@@ -18,7 +19,8 @@ class TotalAverages {
     return {
       nbEntries: this.nbRoundUP + this.nbRoundDOWN,
       totalPayout: this.totalPayout,
-      totalDiff: this.totalDiff,
+      totalDiffUP: this.totalDiffUP,
+      totalDiffDOWN: this.totalDiffDOWN,
       totalPool: this.totalPool,
       totalPayoutUP: this.totalPayoutUP,
       nbRoundUP: this.nbRoundUP,
@@ -40,7 +42,8 @@ class TotalAverages {
   }
 
   addDiff(diff) {
-    this.totalDiff += diff;
+    if (diff > 0) this.totalDiffUP += diff;
+    else this.totalDiffDOWN += diff;
   }
 
   // * GET RISK/SAFE WINS % AND AVG
