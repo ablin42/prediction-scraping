@@ -71,9 +71,9 @@ const scrapePage = async () => {
   // * WAIT FOR PANCAKESWAP ROUNDS TO BE LOADED INTO DOM *
   // * COLLECTS DATA EVERY 10 SECONDS *
   setInterval(async function () {
-    await page.reload({ timeout: 1000 * 60 * 1 * 1 });
     await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
-  }, 1000 * 60 * 1 * 2);
+    await page.reload({ timeout: 1000 * 60 * 60 * 1 });
+  }, 1000 * 60 * 60 * 1);
 
   setInterval(async function () {
     if (STATUS === "DOWN") return;
@@ -82,13 +82,23 @@ const scrapePage = async () => {
 
     await page.evaluate(
       async (BNBPrice, BTCPrice, secondsSinceCandleOpen) => {
+        // * Get Timer *
+        const timeLeft = document.querySelector(
+          "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1) > div:nth-child(1) > div > div > div:nth-child(1)  > div:nth-child(3) > div > div:nth-child(1)  > div > div:nth-child(1) > div:nth-child(1)"
+        ).innerHTML;
+
+        const oraclePrice = document.querySelector(
+          "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1)  > div:nth-child(1)  > div > div > div:nth-child(1)  > div:nth-child(1) > div > div:nth-child(2) > div:nth-child(2) "
+        ).innerHTML;
+
         // * Get Live Round Data *
-        const LIVE_DOM = await _getObjectFromDOM(
+        let LIVE_DOM = await _getObjectFromDOM(
           document
             .querySelector(".swiper-slide-active")
             .innerText.replaceAll("\n", " ")
             .split(" ")
         );
+        LIVE_DOM.oraclePrice = oraclePrice;
 
         // * Get Next Round Data *
         const NEXT_DOM = await _getNextFromDom(
@@ -98,18 +108,13 @@ const scrapePage = async () => {
             .split(" ")
         );
 
-        // * Get Timer *
-        const timeLeft = document.querySelector(
-          "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1) > div:nth-child(1) > div > div > div:nth-child(1)  > div:nth-child(3) > div > div:nth-child(1)  > div > div:nth-child(1) > div:nth-child(1)"
-        ).innerHTML;
-        //? first nth-child(2) is 2 because of popup, else set to 1
-
         const NEXT = await getNext();
         const LIVE = await getLive();
         // * Add oracle entry if oracle price changed *
         if (
-          LIVE.oraclePrice !== LIVE_DOM.oraclePrice &&
-          LIVE_DOM.oraclePrice !== undefined
+          LIVE.oraclePrice !== oraclePrice &&
+          oraclePrice !== undefined &&
+          oraclePrice !== 0
         )
           await _saveOracle(LIVE_DOM, {
             BNBPrice,
@@ -143,7 +148,7 @@ const scrapePage = async () => {
             secondsSinceCandleOpen,
             BNBPrice,
             BTCPrice,
-            oraclePrice: LIVE_DOM.oraclePrice,
+            oraclePrice,
           });
 
           setNext(head);
@@ -152,7 +157,7 @@ const scrapePage = async () => {
 
         // * Save Live Round Data To Class *
         if (
-          LIVE.oraclePrice !== LIVE_DOM.oraclePrice ||
+          LIVE.oraclePrice !== oraclePrice ||
           LIVE_DOM.roundId !== NEXT_DOM.roundId
         ) {
           const { datedEntry, head } = await _formatForClass(LIVE_DOM, {
@@ -163,8 +168,7 @@ const scrapePage = async () => {
           });
 
           setLive(head);
-          if (LIVE.oraclePrice !== LIVE_DOM.oraclePrice)
-            setLiveDatedEntries(datedEntry);
+          if (LIVE.oraclePrice !== oraclePrice) setLiveDatedEntries(datedEntry);
         }
 
         // * Get All Rounds *

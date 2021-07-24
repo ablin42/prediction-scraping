@@ -106,7 +106,7 @@ const scrapeApi = require("./api/scrape");
 app.use("/api/scrape", scrapeApi);
 
 scrapePage();
-refreshAverages();
+// refreshAverages();
 // * MAIN ROUTE *
 app.get("/oracle", async (req, res) => {
   try {
