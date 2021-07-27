@@ -21,7 +21,8 @@ async function incrementTotalAverage({
       },
     })
   );
-  if (errUpdate) console.log("AN ERROR OCCURED WHILE SAVING AVERAGES");
+  if (errUpdate)
+    console.log("AN ERROR OCCURED WHILE SAVING AVERAGES", err.message);
   return averages;
 }
 
@@ -41,7 +42,7 @@ async function updateTotalAverage({
   safeWins,
   safeTotalPayout,
 }) {
-  const [errUpdate, averages] = await utils.promise(
+  const [err, averages] = await utils.promise(
     Average.findByIdAndUpdate(AVERAGE_ID, {
       totalPayout,
       totalDiff,
@@ -57,8 +58,7 @@ async function updateTotalAverage({
       safeTotalPayout,
     })
   );
-  if (errUpdate)
-    console.log("AN ERROR OCCURED WHILE SAVING AVERAGES", errUpdate);
+  if (err) console.log("AN ERROR OCCURED WHILE SAVING AVERAGES", err.message);
   return averages;
 }
 

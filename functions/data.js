@@ -1,14 +1,27 @@
 // @QUERIES
-const { getAllPredictions } = require("../queries/predictions");
+const { getAllRounds } = require("../queries/rounds");
 const { updateTotalAverage } = require("../queries/averages");
 // @FUNCTIONS
 const { getParsedData } = require("./parser");
 // @CLASSES
 const { TotalAverages } = require("../classes/average");
 
-// * Compute averages and risk data *
+// * REFRESH AVERAGES BY COMPUTING EVERY ROUND, EVER *
+async function refreshAverages() {
+  const rounds = await getAllRounds();
+  const data = getRoundData(rounds);
+  await updateTotalAverage(data);
+
+  setInterval(async () => {
+    const rounds = await getAllRounds();
+    const data = getRoundData(rounds);
+    await updateTotalAverage(data);
+  }, 1000 * 60 * 15); // ? 15 minutes
+}
+
+// * COMPUTES AVERAGES AND RISK DATA FROM ENTRIES *
 // ? @PARAM: entries => An array containing rounds
-function getPredictionData(entries) {
+function getRoundData(entries) {
   if (entries.length <= 0) return null;
 
   const averages = new TotalAverages();
@@ -30,58 +43,7 @@ function getPredictionData(entries) {
   return averages.getData();
 }
 
-function formatAvg(number) {
-  if (!number) return 0;
-  return Math.round((number + Number.EPSILON) * 100) / 100;
-}
-
-function getPercentage(number, total) {
-  return (number * 100) / total;
-}
-
-// * REFRESH AVERAGES BY COMPUTING EVERY ROUND, EVER *
-async function refreshAverages() {
-  const predictions = await getAllPredictions();
-  const data = getPredictionData(predictions);
-  await updateTotalAverage(data);
-
-  setInterval(async () => {
-    const predictions = await getAllPredictions();
-    const data = getPredictionData(predictions);
-    await updateTotalAverage(data);
-  }, 1000 * 60 * 15); // ? 15 minutes
-}
-
-function getMedian(entries) {
-  if (!entries) {
-    return {
-      payoutMedian: "N/A",
-      poolMedian: "N/A",
-    };
-  }
-
-  const payouts = [];
-  const pools = [];
-  entries.forEach((round) => {
-    const parsedDiff = parseFloat(round.diff.substr(1));
-    parsedDiff > 0
-      ? payouts.push(parseFloat(round.payoutUP.slice(0, -1)))
-      : payouts.push(parseFloat(round.payoutDOWN.slice(0, -1)));
-    pools.push(parseFloat(round.poolValue));
-  });
-
-  const sortedPayouts = payouts.sort((a, b) => (a > b ? 1 : -1));
-  const sortedPools = pools.sort((a, b) => (a > b ? 1 : -1));
-  const payoutMedian = sortedPayouts[(sortedPayouts.length / 2).toFixed(0)];
-  const poolMedian = sortedPools[(sortedPools.length / 2).toFixed(0)];
-
-  return {
-    payout: formatAvg(payoutMedian),
-    pool: formatAvg(poolMedian),
-  };
-}
-
-// * RETURNS FORMATTED AVERAGES *
+// * RETURNS FORMATTED AVERAGES FROM ENTRIES *
 // ? @PARAM: entries => An array containing rounds
 function getAverages(entries) {
   if (!entries) {
@@ -118,6 +80,37 @@ function getAverages(entries) {
   };
 }
 
+// * RETURNS MEDIAN DATA FROM ENTRIES *
+function getMedian(entries) {
+  if (!entries) {
+    return {
+      payoutMedian: "N/A",
+      poolMedian: "N/A",
+    };
+  }
+
+  const payouts = [];
+  const pools = [];
+  entries.forEach((round) => {
+    const parsedDiff = parseFloat(round.diff.substr(1));
+    parsedDiff > 0
+      ? payouts.push(parseFloat(round.payoutUP.slice(0, -1)))
+      : payouts.push(parseFloat(round.payoutDOWN.slice(0, -1)));
+    pools.push(parseFloat(round.poolValue));
+  });
+
+  const sortedPayouts = payouts.sort((a, b) => (a > b ? 1 : -1));
+  const sortedPools = pools.sort((a, b) => (a > b ? 1 : -1));
+  const payoutMedian = sortedPayouts[(sortedPayouts.length / 2).toFixed(0)];
+  const poolMedian = sortedPools[(sortedPools.length / 2).toFixed(0)];
+
+  return {
+    payout: formatAvg(payoutMedian),
+    pool: formatAvg(poolMedian),
+  };
+}
+
+// * RETURNS ORACLE DATA FROM ORACLES ENTRIES *
 function getOracleData(oracles) {
   if (oracles.length <= 0)
     return { average: "N/A", median: "N/A", odds: "N/A", diffList: "N/A" };
@@ -164,6 +157,16 @@ function getOracleData(oracles) {
 //   return formatAvg((pWin / 100) * (win * 10) - (pLose / 100) * (lose * 10) - 1);
 // }
 
+function formatAvg(number) {
+  if (!number) return 0;
+  return Math.round((number + Number.EPSILON) * 100) / 100;
+}
+
+function getPercentage(number, total) {
+  return (number * 100) / total;
+}
+
+// * RETURNS ESPERANCE *
 function getEsperance(pWin, pLose, win, lose) {
   return formatAvg(
     (pWin / 100) * (win * 10) - (pLose / 100) * (lose * 10) - 10
@@ -174,7 +177,7 @@ module.exports = {
   formatAvg,
   refreshAverages,
   getPercentage,
-  getPredictionData,
+  getRoundData,
   getMedian,
   getAverages,
   getEsperance,

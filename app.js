@@ -6,22 +6,10 @@ const sanitize = require("mongo-sanitize");
 const path = require("path");
 require("dotenv").config();
 // @QUERIES
-const { getPredictionByRange } = require("./queries/predictions");
-const { getLastOracle } = require("./queries/oracle");
 // @FUNCTIONS
 const { scrapePage } = require("./functions/puppeteer");
-const {
-  getAverages,
-  getPredictionData,
-  refreshAverages,
-  getEsperance,
-} = require("./functions/data");
 // @MODELS
-const Average = require("./models/Average");
-const Oracle = require("./models/Oracle");
 // @MISC
-const utils = require("./helpers/utils");
-const { AVERAGE_ID } = require("./constants");
 
 mongoose.connect(
   process.env.DB_CONNECTION,
@@ -102,87 +90,22 @@ app.use(function (req, res, next) {
 app.use(expressSanitizer());
 
 // * API ROUTES *
-const scrapeApi = require("./api/scrape");
-app.use("/api/scrape", scrapeApi);
+const oracleApi = require("./api/oracle");
+const roundsApi = require("./api/rounds");
+app.use("/api/oracle", oracleApi);
+app.use("/api/rounds", roundsApi);
 
 scrapePage();
 // refreshAverages();
+
 // * MAIN ROUTE *
-app.get("/oracle", async (req, res) => {
-  try {
-    const lastOracle = await getLastOracle();
-    const [err, roundOracle] = await utils.promise(
-      Oracle.find({ roundId: lastOracle.roundId })
-    );
-    if (err)
-      console.log("An error occured while fetching this round's oracle data");
-
-    const obj = {
-      lastOracle,
-      roundOracle: roundOracle.sort((a, b) => (a.date > b.date && -1) || 1),
-    };
-
-    return res.status(200).render("oracle", obj);
-  } catch (err) {
-    console.log("HOME ROUTE ERROR:", err, req.headers, req.ipAddress);
-
-    return res.status(200).send("bide");
-  }
-});
 
 app.get("/", async (req, res) => {
   try {
-    var [err, result] = await utils.promise(Average.findById(AVERAGE_ID));
-    if (err) console.log("An error occured while fetching averages");
-
-    const rangedEntries = await getPredictionByRange(2);
-    const rangedData = getPredictionData(rangedEntries);
-    const rangedAverages = getAverages(rangedData);
-    const averages = getAverages(result);
-
-    const obj = {
-      averages,
-      rangedAverages,
-      overallSafeEsperance: getEsperance(
-        averages.safePercentWr,
-        averages.riskyPercentWr,
-        averages.avgSafe,
-        -1
-      ),
-      rangedSafeEsperance: getEsperance(
-        rangedAverages.safePercentWr,
-        rangedAverages.riskyPercentWr,
-        rangedAverages.avgSafe,
-        -1
-      ),
-      rangedRiskyEsperance: getEsperance(
-        rangedAverages.riskyPercentWr,
-        rangedAverages.safePercentWr,
-        rangedAverages.avgRisky,
-        -1
-      ),
-    };
-    // console.log(
-    //   getEsperance(
-    //     rangedAverages.riskyPercentWr,
-    //     rangedAverages.safePercentWr,
-    //     rangedAverages.avgRisky,
-    //     rangedAverages.avgSafe
-    //   ),
-    //   getEsperance(
-    //     rangedAverages.safePercentWr,
-    //     rangedAverages.riskyPercentWr,
-    //     rangedAverages.avgSafe,
-    //     rangedAverages.avgRisky
-    //   ),
-    //   rangedAverages
-    // );
-
-    return res.status(200).render("index", obj);
+    return res.status(200).send("404");
   } catch (err) {
     console.log("HOME ROUTE ERROR:", err, req.headers, req.ipAddress);
-
-    return res.status(200).send("bide");
+    return res.status(200).send("404");
   }
 });
 

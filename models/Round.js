@@ -1,7 +1,7 @@
 // @EXTERNALS
 const mongoose = require("mongoose");
 
-const PredictionSchema = new mongoose.Schema(
+const RoundSchema = new mongoose.Schema(
   {
     roundId: {
       type: String,
@@ -41,4 +41,4 @@ const PredictionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("prediction", PredictionSchema);
+module.exports = mongoose.model("round", RoundSchema);

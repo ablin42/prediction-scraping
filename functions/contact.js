@@ -2,6 +2,7 @@
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 
+// * FUNCTIONS USED TO SEND MAILS *
 module.exports = async function mailer(email, subject, text) {
   let transporter = nodemailer.createTransport({
     service: "gmail",

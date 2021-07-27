@@ -9,7 +9,7 @@ async function setStatus(status) {
     isUp: status,
   });
   const [err, saved] = await utils.promise(newStatus.save());
-  if (err) console.log("AN ERROR OCCURED UPDATING STATUS");
+  if (err) console.log(`AN ERROR OCCURED UPDATING STATUS (${status})`);
   return saved;
 }
 

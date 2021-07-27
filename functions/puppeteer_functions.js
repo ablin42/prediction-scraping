@@ -1,9 +1,5 @@
 // @QUERIES
-const {
-  getPrediction,
-  getLastPrediction,
-  addPrediction,
-} = require("../queries/predictions");
+const { getRound, getLastRound, addRound } = require("../queries/rounds");
 const { incrementTotalAverage } = require("../queries/averages");
 const { addOracle, getLastOracle } = require("../queries/oracle");
 const { getTickerPrice, getCandle } = require("../queries/binance");
@@ -13,18 +9,19 @@ const mailer = require("./contact");
 const { isExpired, getParsedData } = require("./parser");
 const { formatAvg } = require("./data");
 
+// * CHECK THE PREDICTION GAME STATUS (UP/DOWN) *
 async function checkStatus() {
   const status = await getStatus();
-  const lastPrediction = await getLastPrediction();
+  const lastRound = await getLastRound();
   const timestamp = +new Date();
   const INTERVAL = 1000 * 60 * 10;
 
-  if (timestamp - lastPrediction.date > INTERVAL && status.isUp) {
+  if (timestamp - lastRound.date > INTERVAL && status.isUp) {
     await setStatus(false);
     if (await mailer(process.env.EMAIL, "Market is [ DOWN ]", ""))
       console.log("An error occured while sending the mail");
     return (STATUS = "DOWN");
-  } else if (timestamp - lastPrediction.date < INTERVAL && !status.isUp) {
+  } else if (timestamp - lastRound.date < INTERVAL && !status.isUp) {
     await setStatus(true);
     if (await mailer(process.env.EMAIL, "Market is [ UP ]", ""))
       console.log("An error occured while sending the mail");
@@ -32,12 +29,13 @@ async function checkStatus() {
   }
 }
 
+// * SAVE EXPIRED ROUND THAT WE MOST LIKELY DIDNT MONITOR (due to our app being offline) *
 async function saveExpiredRounds(DOM) {
   const isRoundExpired = isExpired(DOM.status);
   if (!isRoundExpired || DOM.payoutUP === "0x" || DOM.payoutDOWN === "0x")
     return;
 
-  const existingRound = await getPrediction(DOM.roundId);
+  const existingRound = await getRound(DOM.roundId);
   if (existingRound) return;
 
   const { parsedDiff, parsedPool, winningPayout } = getParsedData(
@@ -60,9 +58,11 @@ async function saveExpiredRounds(DOM) {
     payoutDOWN: DOM.payoutDOWN,
     history: [],
   };
-  await savePrediction(data);
+  await saveRound(data);
 }
 
+// * FORMAT DATA FROM DOM & INFOS TO RETURN TWO OBJECTS *
+// * HEAD IS FOR THE GENERAL INFO, DATEDENTRY IS FOR HISTORY *
 async function formatForClass(DOM, infos) {
   const { timeLeft, secondsSinceCandleOpen, BNBPrice, BTCPrice, oraclePrice } =
     infos;
@@ -92,6 +92,7 @@ async function formatForClass(DOM, infos) {
   return { datedEntry, head };
 }
 
+// * SAVE ROUND DATA TO DATABASE *
 async function saveRound(DOM, HISTORY) {
   const { parsedDiff, parsedPool, winningPayout } = getParsedData(
     DOM.diff,
@@ -100,7 +101,7 @@ async function saveRound(DOM, HISTORY) {
     DOM.payoutDOWN
   );
 
-  await savePrediction({
+  await saveRound({
     parsedDiff,
     parsedPool,
     winningPayout,
@@ -115,6 +116,7 @@ async function saveRound(DOM, HISTORY) {
   });
 }
 
+// * SAVE ORACLE DATA TO DATABASE *
 async function saveOracle(DOM, infos) {
   const { BNBPrice, BTCPrice, timeLeft, secondsSinceCandleOpen } = infos;
   const lastOracle = await getLastOracle();
@@ -133,6 +135,7 @@ async function saveOracle(DOM, infos) {
     });
 }
 
+// * RETURNS PARAMETERS THAT WE PASS TO PUPPETEER INSTANCE *
 async function getEvaluateParams() {
   const BNBPrice = formatAvg(await getTickerPrice("BNB"));
   const BTCPrice = formatAvg(await getTickerPrice("BTC"));
@@ -144,7 +147,7 @@ async function getEvaluateParams() {
 }
 
 // * ADD A ROUND TO DATABASE & INCREMENT AVERAGES WITH ITS VALUES *
-async function savePrediction(entry) {
+async function saveRound(entry) {
   const {
     parsedDiff,
     parsedPool,
@@ -159,7 +162,7 @@ async function savePrediction(entry) {
     history,
   } = entry;
 
-  const addedPrediction = await addPrediction(
+  const addedRound = await addRound(
     roundId,
     payoutUP,
     closePrice,
@@ -170,7 +173,7 @@ async function savePrediction(entry) {
     history
   );
 
-  if (addedPrediction)
+  if (addedRound)
     averages = await incrementTotalAverage({
       totalPayout: winningPayout,
       totalDiff: parsedDiff,
@@ -186,5 +189,5 @@ module.exports = {
   formatForClass,
   saveExpiredRounds,
   checkStatus,
-  savePrediction,
+  saveRound,
 };

@@ -84,6 +84,7 @@ const getObjectFromDOM = async (DOM) => {
   };
 };
 
+// * RETURNS AN OBJECT WITH NEEDED DATA SPECIFICALLY FOR NEXT ROUND DOM *
 const getNextFromDom = async (DOM) => {
   const [status, roundId, , payoutUP, , , , poolValue, , , , , payoutDOWN] =
     DOM;
