@@ -15,6 +15,7 @@ const {
   getAverages,
   getRoundData,
   getEsperance,
+  groupByHour,
 } = require("../functions/data");
 
 // * RETURN MEDIAN DATA FOR ROUNDS *
@@ -45,6 +46,45 @@ router.get("/mediane", async (req, res) => {
 
 // * RETURN ROUNDS FROM X HOURS AGO *
 // ? @PARAM: "period" => A string identifying a key-value pair
+router.get(
+  "/period/hourly/:startTimestamp/:endTimestamp/:grouped",
+  async (req, res) => {
+    try {
+      const startTimestamp = req.params.startTimestamp;
+      const endTimestamp = req.params.endTimestamp;
+      const grouped = req.params.grouped;
+      const nbHours = Math.round(
+        (endTimestamp - startTimestamp) / 1000 / 60 / 60
+      );
+      let dataset = [];
+
+      for (let i = nbHours; i >= 0; i--) {
+        const start = startTimestamp - (i + 1) * 60 * 60 * 1000;
+        const end = startTimestamp - i * 60 * 60 * 1000;
+        const entries = await getRoundByTimestamp(start, end);
+        const data = getRoundData(entries);
+        const averages = getAverages(data);
+
+        dataset.push({
+          hour: new Date(start).getHours(), //getUTCHours
+          avgSafe: averages.avgSafe,
+          avgRisky: averages.avgRisky,
+          safePercentWr: averages.safePercentWr,
+          riskyPercentWr: averages.riskyPercentWr,
+        });
+      }
+      if (grouped === "true") dataset = groupByHour(dataset);
+
+      return res.status(200).json(dataset);
+    } catch (err) {
+      console.log("ERROR FETCHING PERIOD:", err, req.headers, req.ipAddress);
+      return res.status(200).json({ error: true, message: err.message });
+    }
+  }
+);
+
+// * RETURN ROUNDS FROM X HOURS AGO *
+// ? @PARAM: "period" => A string identifying a key-value pair
 router.get("/period/:period", async (req, res) => {
   try {
     const periodInhours = periodToHours(req.params.period);
@@ -56,7 +96,7 @@ router.get("/period/:period", async (req, res) => {
       averages.safePercentWr,
       averages.riskyPercentWr,
       averages.avgSafe,
-      -1
+      10
     );
 
     const obj = { ...averages, safeEsperance, entries, median };

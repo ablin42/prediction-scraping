@@ -152,30 +152,111 @@ function getOracleData(oracles) {
   return { average, median, odds, diffList };
 }
 
-// function getEsperance(pWin, pLose, win, lose) {
-//   //console.log(`(${pWin / 100} x ${win * 10} $) – (${pLose / 100} x ${lose} $)`);
-//   return formatAvg((pWin / 100) * (win * 10) - (pLose / 100) * (lose * 10) - 1);
-// }
+function groupByHour(dataset) {
+  const arr = [];
 
+  dataset.forEach((item) => {
+    const { hour, avgSafe, avgRisky, safePercentWr, riskyPercentWr } = item;
+    if (avgSafe === "N/A") return;
+
+    if (!arr[hour])
+      arr[hour] = {
+        hour,
+        count: 1,
+        avgSafe,
+        avgRisky,
+        safePercentWr,
+        riskyPercentWr,
+      };
+    else {
+      arr[hour].count += 1;
+      arr[hour].avgSafe += avgSafe;
+      arr[hour].avgRisky += avgRisky;
+      arr[hour].safePercentWr += safePercentWr;
+      arr[hour].riskyPercentWr += riskyPercentWr;
+    }
+  });
+
+  const averages = arr.map((item) => {
+    const { hour, count, avgSafe, avgRisky, safePercentWr, riskyPercentWr } =
+      item;
+    return {
+      hour,
+      avgSafe: formatAvg(avgSafe / count),
+      avgRisky: formatAvg(avgRisky / count),
+      safePercentWr: formatAvg(safePercentWr / count),
+      riskyPercentWr: formatAvg(riskyPercentWr / count),
+    };
+  });
+  return averages;
+}
+
+// * RETURNS FORMATTED AVERAGE *
 function formatAvg(number) {
   if (!number) return 0;
   return Math.round((number + Number.EPSILON) * 100) / 100;
 }
 
+// * RETURNS PERCENTAGE *
 function getPercentage(number, total) {
   return (number * 100) / total;
 }
 
-// * RETURNS ESPERANCE *
+/* METHODE 1
+function getEsperance(pWin, pLose, win, lose) {
+  return formatAvg(
+    (pWin / 100) * (win * 10 - 10) + (pLose / 100) * - 10
+    0.7 * 4 + 0.3 * - 10 = 0.2
+  );
+}
+*/
+
+/* METHODE 2
+function getEsperance(pWin, pLose, win, lose) {
+  return formatAvg(
+    (pWin / 100) * (win * 10) + (pLose / 100) * 0 - 10
+    0.7 * 14 + 0.3 * 0 - 10 = -0.2
+  );
+}
+*/
+
+/* METHODE 3
+function getEsperance(pWin, pLose, win, lose) {
+  return formatAvg(
+    (pWin / 100) * (win * 10 - 10) - (pLose / 100) * 10
+    0.7 * (1.4 * 10 - 10) - 0.3 * 10 = -0.2
+  );
+}
+*/
+
+/* METHODE 4
+function getEsperance(pWin, pLose, win, lose) {
+  return formatAvg(
+    (pWin / 100) * (win * 10 - 10) - (pLose / 100) * 10
+    0.7 * (1.4 * 10 - 10) - 0.3 * 10 = -0.2
+  );
+}
+*/
+
+/* OLD ESPERANCE
 function getEsperance(pWin, pLose, win, lose) {
   return formatAvg(
     (pWin / 100) * (win * 10) - (pLose / 100) * (lose * 10) - 10
+  );
+}
+*/
+
+// * RETURNS ESPERANCE *
+function getEsperance(pWin, pLose, win, betAmount) {
+  return formatAvg(
+    (pWin / 100) * (win * betAmount - betAmount) - (pLose / 100) * betAmount
   );
 }
 
 module.exports = {
   formatAvg,
   refreshAverages,
+  groupByHour,
   getPercentage,
   getRoundData,
   getMedian,
