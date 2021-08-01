@@ -2,7 +2,7 @@
 const { getAllRounds } = require("../queries/rounds");
 const { updateTotalAverage } = require("../queries/averages");
 // @FUNCTIONS
-const { getParsedData } = require("./parser");
+const { getWinningPayout } = require("./parser");
 // @CLASSES
 const { TotalAverages } = require("../classes/average");
 
@@ -26,18 +26,21 @@ function getRoundData(entries) {
 
   const averages = new TotalAverages();
   entries.forEach((entry) => {
-    const { parsedDiff, parsedPool, parsedUP, parsedDOWN, winningPayout } =
-      getParsedData(
-        entry.diff,
-        entry.poolValue,
-        entry.payoutUP,
-        entry.payoutDOWN
-      );
+    const winningPayout = getWinningPayout(
+      entry.diff,
+      entry.payoutUP,
+      entry.payoutDOWN
+    );
 
     averages.addPayout(winningPayout);
-    averages.addPool(parsedPool);
-    averages.addDiff(parsedDiff);
-    averages.addRiskData(parsedDiff, winningPayout, parsedUP, parsedDOWN);
+    averages.addPool(entry.poolValue);
+    averages.addDiff(entry.diff);
+    averages.addRiskData(
+      entry.diff,
+      winningPayout,
+      entry.payoutUP,
+      entry.payoutDOWN
+    );
   });
 
   return averages.getData();
@@ -92,11 +95,10 @@ function getMedian(entries) {
   const payouts = [];
   const pools = [];
   entries.forEach((round) => {
-    const parsedDiff = parseFloat(round.diff.substr(1));
-    parsedDiff > 0
-      ? payouts.push(parseFloat(round.payoutUP.slice(0, -1)))
-      : payouts.push(parseFloat(round.payoutDOWN.slice(0, -1)));
-    pools.push(parseFloat(round.poolValue));
+    round.diff > 0
+      ? payouts.push(round.payoutUP)
+      : payouts.push(round.payoutDOWN);
+    pools.push(round.poolValue);
   });
 
   const sortedPayouts = payouts.sort((a, b) => (a > b ? 1 : -1));

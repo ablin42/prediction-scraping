@@ -92,9 +92,13 @@ const scrapePage = async () => {
           "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1) > div:nth-child(1) > div > div > div:nth-child(1)  > div:nth-child(3) > div > div:nth-child(1)  > div > div:nth-child(1) > div:nth-child(1)"
         ).innerHTML;
 
-        const oraclePrice = document.querySelector(
-          "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1)  > div:nth-child(1)  > div > div > div:nth-child(1)  > div:nth-child(1) > div > div:nth-child(2) > div:nth-child(2) "
-        ).innerHTML;
+        const oraclePrice = parseFloat(
+          document
+            .querySelector(
+              "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1)  > div:nth-child(1)  > div > div > div:nth-child(1)  > div:nth-child(1) > div > div:nth-child(2) > div:nth-child(2) "
+            )
+            .innerHTML.substr(1)
+        );
 
         // * Get Live Round Data *
         let LIVE_DOM = await _getObjectFromDOM(
@@ -103,95 +107,101 @@ const scrapePage = async () => {
             .innerText.replaceAll("\n", " ")
             .split(" ")
         );
-        LIVE_DOM.oraclePrice = oraclePrice;
+        if (LIVE_DOM.status !== "Calculating") {
+          LIVE_DOM.oraclePrice = oraclePrice;
 
-        // * Get Next Round Data *
-        const NEXT_DOM = await _getNextFromDom(
-          document
-            .querySelector(".swiper-slide-next")
-            .innerText.replaceAll("\n", " ")
-            .split(" ")
-        );
-
-        const NEXT = await getNext();
-        const LIVE = await getLive();
-        // * Add oracle entry if oracle price changed *
-        if (
-          LIVE.oraclePrice !== oraclePrice &&
-          oraclePrice !== undefined &&
-          oraclePrice !== 0 &&
-          !Number.isNaN(oraclePrice) &&
-          timeLeft !== "Closing"
-        )
-          await _saveOracle(LIVE_DOM, {
-            BNBPrice,
-            BTCPrice,
-            timeLeft,
-            secondsSinceCandleOpen,
-          });
-
-        // * Save LIVE round that just closed to DATABASE *
-        if (LIVE_DOM.roundId !== LIVE.roundId && LIVE?.roundId !== undefined) {
-          // * Get Prev Round Data (= round that was monitored until now) *
-          const PREV_DOM = await _getObjectFromDOM(
+          // * Get Next Round Data *
+          const NEXT_DOM = await _getNextFromDom(
             document
-              .querySelector(".swiper-slide-prev")
+              .querySelector(".swiper-slide-next")
               .innerText.replaceAll("\n", " ")
               .split(" ")
           );
-          const HISTORY = await getHistory();
-          // await screenshot({
-          //   path: `./screenshots/${PREV_DOM.roundId}.png`,
-          // });
-          await _saveRoundLive(PREV_DOM, HISTORY);
-        }
 
-        // * Save Next Round data to Class*
-        if (
-          NEXT.roundId !== NEXT_DOM.roundId ||
-          NEXT.poolValue !== NEXT_DOM.poolValue
-        ) {
-          if (NEXT.roundId !== NEXT_DOM.roundId) await _openRound();
+          const NEXT = await getNext();
+          const LIVE = await getLive();
+          // * Add oracle entry if oracle price changed *
+          if (
+            LIVE.oraclePrice !== oraclePrice &&
+            oraclePrice !== undefined &&
+            oraclePrice !== 0 &&
+            !Number.isNaN(oraclePrice) &&
+            timeLeft !== "Closing"
+          )
+            await _saveOracle(LIVE_DOM, {
+              BNBPrice,
+              BTCPrice,
+              timeLeft,
+              secondsSinceCandleOpen,
+            });
 
-          const { datedEntry, head } = await _formatForClass(NEXT_DOM, {
-            timeLeft,
-            secondsSinceCandleOpen,
-            BNBPrice,
-            BTCPrice,
-            oraclePrice,
-          });
+          // * Save LIVE round that just closed to DATABASE *
+          if (
+            LIVE_DOM.roundId !== LIVE.roundId &&
+            LIVE?.roundId !== undefined
+          ) {
+            // * Get Prev Round Data (= round that was monitored until now) *
+            const PREV_DOM = await _getObjectFromDOM(
+              document
+                .querySelector(".swiper-slide-prev")
+                .innerText.replaceAll("\n", " ")
+                .split(" ")
+            );
+            const HISTORY = await getHistory();
+            // await screenshot({
+            //   path: `./screenshots/${PREV_DOM.roundId}.png`,
+            // });
+            await _saveRoundLive(PREV_DOM, HISTORY);
+          }
 
-          setNext(head);
-          setNextDatedEntries(datedEntry);
-        }
+          // * Save Next Round data to Class*
+          if (
+            NEXT.roundId !== NEXT_DOM.roundId ||
+            NEXT.poolValue !== NEXT_DOM.poolValue
+          ) {
+            if (NEXT.roundId !== NEXT_DOM.roundId) await _openRound();
 
-        // * Save Live Round Data To Class *
-        if (
-          LIVE.oraclePrice !== oraclePrice ||
-          LIVE_DOM.roundId !== NEXT_DOM.roundId
-        ) {
-          const { datedEntry, head } = await _formatForClass(LIVE_DOM, {
-            timeLeft,
-            secondsSinceCandleOpen,
-            BNBPrice,
-            BTCPrice,
-          });
+            const { datedEntry, head } = await _formatForClass(NEXT_DOM, {
+              timeLeft,
+              secondsSinceCandleOpen,
+              BNBPrice,
+              BTCPrice,
+              oraclePrice,
+            });
 
-          setLive(head);
-          if (LIVE.oraclePrice !== oraclePrice) setLiveDatedEntries(datedEntry);
-        }
+            setNext(head);
+            setNextDatedEntries(datedEntry);
+          }
 
-        // * Get All Rounds *
-        const slides = document.querySelectorAll(".swiper-slide");
-        for (item of Array.from(slides)) {
-          const EXP_DOM = await _getObjectFromDOM(
-            item
-              .querySelector("div > div > div > div > div > div > div > div")
-              .innerText.replaceAll("\n", " ")
-              .split(" ")
-          );
-          // * Save all expired rounds not already in DB *
-          await _saveExpiredRounds(EXP_DOM);
+          // * Save Live Round Data To Class *
+          if (
+            LIVE.oraclePrice !== oraclePrice ||
+            LIVE_DOM.roundId !== NEXT_DOM.roundId
+          ) {
+            const { datedEntry, head } = await _formatForClass(LIVE_DOM, {
+              timeLeft,
+              secondsSinceCandleOpen,
+              BNBPrice,
+              BTCPrice,
+            });
+
+            setLive(head);
+            if (LIVE.oraclePrice !== oraclePrice)
+              setLiveDatedEntries(datedEntry);
+          }
+
+          // * Get All Rounds *
+          const slides = document.querySelectorAll(".swiper-slide");
+          for (item of Array.from(slides)) {
+            const EXP_DOM = await _getObjectFromDOM(
+              item
+                .querySelector("div > div > div > div > div > div > div > div")
+                .innerText.replaceAll("\n", " ")
+                .split(" ")
+            );
+            // * Save all expired rounds not already in DB *
+            await _saveExpiredRounds(EXP_DOM);
+          }
         }
       },
       BNBPrice,

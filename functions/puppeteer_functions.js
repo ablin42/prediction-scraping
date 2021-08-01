@@ -6,7 +6,7 @@ const { getTickerPrice, getCandle } = require("../queries/binance");
 const { setStatus, getStatus } = require("../queries/status");
 // @FUNCTIONS
 const mailer = require("./contact");
-const { isExpired, getParsedData } = require("./parser");
+const { isExpired, getWinningPayout } = require("./parser");
 const { formatAvg } = require("./data");
 
 // * CHECK THE PREDICTION GAME STATUS (UP/DOWN) *
@@ -32,23 +32,13 @@ async function checkStatus() {
 // * SAVE EXPIRED ROUND THAT WE MOST LIKELY DIDNT MONITOR (due to our app being offline) *
 async function saveExpiredRounds(DOM) {
   const isRoundExpired = isExpired(DOM.status);
-  if (!isRoundExpired || DOM.payoutUP === "0x" || DOM.payoutDOWN === "0x")
-    return;
+  if (!isRoundExpired || DOM.payoutUP === "0" || DOM.payoutDOWN === "0") return;
 
   const existingRound = await getRound(DOM.roundId);
   if (existingRound) return;
 
-  const { parsedDiff, parsedPool, winningPayout } = getParsedData(
-    DOM.diff,
-    DOM.poolValue,
-    DOM.payoutUP,
-    DOM.payoutDOWN
-  );
-
   const data = {
-    parsedDiff,
-    parsedPool,
-    winningPayout,
+    // winningPayout,
     roundId: DOM.roundId,
     payoutUP: DOM.payoutUP,
     closePrice: DOM.oraclePrice,
@@ -95,17 +85,15 @@ async function formatForClass(DOM, infos) {
 
 // * SAVE ROUND DATA TO DATABASE *
 async function saveRoundLive(DOM, HISTORY) {
-  const { parsedDiff, parsedPool, winningPayout } = getParsedData(
-    DOM.diff,
-    DOM.poolValue,
-    DOM.payoutUP,
-    DOM.payoutDOWN
-  );
+  // const { parsedDiff, parsedPool, winningPayout } = getParsedData(
+  //   DOM.diff,
+  //   DOM.poolValue,
+  //   DOM.payoutUP,
+  //   DOM.payoutDOWN
+  // );
 
   await saveRound({
-    parsedDiff,
-    parsedPool,
-    winningPayout,
+    //winningPayout: getWinningPayout(DOM.diff, DOM.payoutUP, DOM.payoutDOWN),
     roundId: DOM.roundId,
     payoutUP: DOM.payoutUP,
     closePrice: DOM.oraclePrice,
@@ -127,8 +115,8 @@ async function saveOracle(DOM, infos) {
   if (secondsSinceLastOracleAdded > 22)
     addOracle({
       roundId: DOM.roundId,
-      oraclePrice: DOM.oraclePrice.substr(1),
-      openPrice: DOM.openPrice.substr(1),
+      oraclePrice: DOM.oraclePrice,
+      openPrice: DOM.openPrice,
       BNBPrice,
       BTCPrice,
       secondsSinceCandleOpen,
@@ -150,9 +138,6 @@ async function getEvaluateParams() {
 // * ADD A ROUND TO DATABASE & INCREMENT AVERAGES WITH ITS VALUES *
 async function saveRound(entry) {
   const {
-    parsedDiff,
-    parsedPool,
-    winningPayout,
     roundId,
     payoutUP,
     closePrice,
@@ -162,6 +147,7 @@ async function saveRound(entry) {
     payoutDOWN,
     history,
   } = entry;
+  const winningPayout = getWinningPayout(diff, payoutUP, payoutDOWN);
 
   const addedRound = await addRound(
     roundId,
@@ -177,8 +163,8 @@ async function saveRound(entry) {
   if (addedRound)
     averages = await incrementTotalAverage({
       totalPayout: winningPayout,
-      totalDiff: parsedDiff,
-      totalPool: parsedPool,
+      totalDiff: diff,
+      totalPool: poolValue,
       totalSaved: 1,
     });
 }

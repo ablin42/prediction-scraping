@@ -27,11 +27,10 @@ router.get("/mediane", async (req, res) => {
     const pools = [];
     const rounds = await getRoundsLastHours(24);
     rounds.forEach((round) => {
-      const parsedDiff = parseFloat(round.diff.substr(1));
-      parsedDiff > 0
-        ? payouts.push(parseFloat(round.payoutUP.slice(0, -1)))
-        : payouts.push(parseFloat(round.payoutDOWN.slice(0, -1)));
-      pools.push(parseFloat(round.poolValue));
+      round.diff > 0
+        ? payouts.push(round.payoutUP)
+        : payouts.push(round.payoutDOWN);
+      pools.push(round.poolValue);
     });
 
     const sorted = payouts.sort((a, b) => (a > b ? 1 : -1));
@@ -103,7 +102,6 @@ router.get(
         const entries = await getRoundByTimestamp(start, end);
         const data = getRoundData(entries);
         const averages = getAverages(data);
-
         const safeEsperance = getEsperance(
           averages.safePercentWr,
           averages.riskyPercentWr,
@@ -116,6 +114,7 @@ router.get(
           averages.avgRisky,
           10
         );
+
         dataset.push({
           hour: new Date(start).getHours(), //getUTCHours
           safeEsperance,
@@ -203,9 +202,8 @@ router.get("/timestamp/:startTimestamp/:endTimestamp", async (req, res) => {
   }
 });
 
-// * RETURN ROUNDS BETWEEN ${startTimestamp} && ${endTimestamp} *
-// ? @PARAM: "startTimestamp" => Start timestamp
-// ? @PARAM: "endTimestamp" => End timestamp
+// * RETURN A SINGLE ROUND *
+// ? @PARAM: "roundId" => Round ID
 router.get("/one/:roundId", async (req, res) => {
   try {
     const roundId = "#" + req.params.roundId;

@@ -3,6 +3,60 @@ const Round = require("../models/Round");
 // @MISC
 const utils = require("../helpers/utils");
 
+async function transformToNumber() {
+  let [err, result] = await utils.promise(
+    Round.find(
+      {},
+      {
+        history: 0,
+      }
+    )
+  );
+  if (err) console.log("AN ERROR OCCURED FETCHING ALL DATA", err.message);
+
+  for (let i = 0; i < result.length; i++) {
+    const {
+      roundId,
+      poolValue,
+      openPrice,
+      closePrice,
+      diff,
+      payoutUP,
+      payoutDOWN,
+    } = result[i];
+
+    if (isNaN(payoutUP)) {
+      // console.log(
+      //   roundId,
+      //   poolValue,
+      //   openPrice,
+      //   closePrice,
+      //   diff,
+      //   payoutUP,
+      //   payoutDOWN,
+      //   result[i]
+      // );
+
+      let [errx, resultx] = await utils.promise(
+        Round.findOneAndUpdate(
+          { roundId },
+          {
+            $set: {
+              poolValue: parseFloat(poolValue),
+              openPrice: parseFloat(openPrice.substr(1)),
+              closePrice: parseFloat(closePrice.substr(1)),
+              diff: parseFloat(diff.substr(1)),
+              payoutUP: parseFloat(payoutUP),
+              payoutDOWN: parseFloat(payoutDOWN),
+            },
+          }
+        )
+      );
+    }
+  }
+  return result;
+}
+
 // * ADD A NEW ROUND, UPDATE HISTORY IF IT ALREADY EXIST *
 async function addRound(
   roundId,
@@ -14,15 +68,17 @@ async function addRound(
   payoutDOWN,
   history
 ) {
-  console.log(
-    roundId,
-    payoutUP,
-    closePrice,
-    diff,
-    openPrice,
-    poolValue,
-    payoutDOWN
-  );
+  // console.log(
+  //   roundId,
+  //   payoutUP,
+  //   closePrice,
+  //   diff,
+  //   openPrice,
+  //   poolValue,
+  //   payoutDOWN,
+  //   history.length
+  // );
+  // return;
   const round = new Round({
     roundId,
     payoutUP,
@@ -158,4 +214,5 @@ module.exports = {
   getRoundsLastHoursWithHistory,
   getRoundByTimestamp,
   getRound,
+  transformToNumber,
 };

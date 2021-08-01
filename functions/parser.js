@@ -72,15 +72,18 @@ const getObjectFromDOM = async (DOM) => {
     payoutDOWN,
   ] = DOM;
 
+  if (status === "Next" || status === "Later" || status === "Calculating")
+    return { status };
+
   return {
     status,
     roundId,
-    payoutUP,
-    oraclePrice,
-    diff,
-    openPrice,
-    poolValue,
-    payoutDOWN,
+    payoutUP: _payout(payoutUP),
+    oraclePrice: oraclePrice ? parseFloat(oraclePrice.substr(1)) : openPrice,
+    diff: _diff(diff),
+    openPrice: parseFloat(openPrice.substr(1)),
+    poolValue: _pool(poolValue),
+    payoutDOWN: _payout(payoutDOWN),
   };
 };
 
@@ -92,9 +95,9 @@ const getNextFromDom = async (DOM) => {
   return {
     status,
     roundId,
-    payoutUP,
-    poolValue,
-    payoutDOWN,
+    payoutUP: _payout(payoutUP),
+    poolValue: _pool(poolValue),
+    payoutDOWN: _payout(payoutDOWN),
   };
 };
 
