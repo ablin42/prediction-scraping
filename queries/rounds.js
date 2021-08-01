@@ -142,6 +142,13 @@ async function getLastRound() {
   return result[0];
 }
 
+// * GET ROUND BY ROUNDID *
+async function getRound(roundId) {
+  let [err, result] = await utils.promise(Round.findOne({ roundId }));
+  if (err) console.log("AN ERROR OCCURED FETCHING LAST ROUND", err.message);
+  return result;
+}
+
 module.exports = {
   addRound,
   getLastRound,
@@ -150,4 +157,5 @@ module.exports = {
   getAllRounds,
   getRoundsLastHoursWithHistory,
   getRoundByTimestamp,
+  getRound,
 };

@@ -5,7 +5,7 @@ const { getObjectFromDOM, getNextFromDom } = require("./parser");
 const {
   getEvaluateParams,
   saveOracle,
-  saveRound,
+  saveRoundLive,
   formatForClass,
   saveExpiredRounds,
   checkStatus,
@@ -42,8 +42,8 @@ const scrapePage = async () => {
   await page.exposeFunction("_formatForClass", (DOM, infos) =>
     formatForClass(DOM, infos)
   );
-  await page.exposeFunction("_saveRound", (DOM, HISTORY) =>
-    saveRound(DOM, HISTORY)
+  await page.exposeFunction("_saveRoundLive", (DOM, HISTORY) =>
+    saveRoundLive(DOM, HISTORY)
   );
   await page.exposeFunction("_saveOracle", (DOM, infos) =>
     saveOracle(DOM, infos)
@@ -61,6 +61,10 @@ const scrapePage = async () => {
   await page.exposeFunction("setLiveDatedEntries", (entry) =>
     newRounds.setLiveDatedEntries(entry)
   );
+
+  // await page.exposeFunction("screenshot", async (obj) => {
+  //   await page.screenshot(obj);
+  // });
   await page.goto("https://pancakeswap.finance/prediction");
 
   // * MONITOR LAST ROUND ADDED TO DETECT IF PANCAKESWAP BETS SERVICES ARE DOWN *
@@ -72,7 +76,8 @@ const scrapePage = async () => {
   // * COLLECTS DATA EVERY 10 SECONDS *
   setInterval(async function () {
     await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
-    await page.reload({ timeout: 1000 * 60 * 60 * 1 });
+    await page.reload({ timeout: 1000 * 60 * 30 * 1 });
+    // await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
   }, 1000 * 60 * 60 * 1);
 
   setInterval(async function () {
@@ -133,7 +138,10 @@ const scrapePage = async () => {
               .split(" ")
           );
           const HISTORY = await getHistory();
-          await _saveRound(PREV_DOM, HISTORY);
+          // await screenshot({
+          //   path: `./screenshots/${PREV_DOM.roundId}.png`,
+          // });
+          await _saveRoundLive(PREV_DOM, HISTORY);
         }
 
         // * Save Next Round data to Class*

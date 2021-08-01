@@ -58,6 +58,7 @@ async function saveExpiredRounds(DOM) {
     payoutDOWN: DOM.payoutDOWN,
     history: [],
   };
+  console.log("save expired rounds");
   await saveRound(data);
 }
 
@@ -93,7 +94,7 @@ async function formatForClass(DOM, infos) {
 }
 
 // * SAVE ROUND DATA TO DATABASE *
-async function saveRound(DOM, HISTORY) {
+async function saveRoundLive(DOM, HISTORY) {
   const { parsedDiff, parsedPool, winningPayout } = getParsedData(
     DOM.diff,
     DOM.poolValue,
@@ -185,7 +186,7 @@ async function saveRound(entry) {
 module.exports = {
   getEvaluateParams,
   saveOracle,
-  saveRound,
+  saveRoundLive,
   formatForClass,
   saveExpiredRounds,
   checkStatus,

@@ -7,6 +7,7 @@ const {
   getRoundsLastHours,
   getRoundsLastHoursWithHistory,
   getRoundByTimestamp,
+  getRound,
 } = require("../queries/rounds");
 const { periodToHours } = require("../functions/parser");
 // @FUNCTIONS
@@ -137,6 +138,26 @@ router.get("/timestamp/:startTimestamp/:endTimestamp", async (req, res) => {
     const entries = await getRoundByTimestamp(startTimestamp, endTimestamp);
 
     return res.status(200).json(entries);
+  } catch (err) {
+    console.log(
+      "ERROR FETCHING ROUNDS BETWEEN TIMESTAMPS:",
+      err,
+      req.headers,
+      req.ipAddress
+    );
+    return res.status(200).json({ error: true, message: err.message });
+  }
+});
+
+// * RETURN ROUNDS BETWEEN ${startTimestamp} && ${endTimestamp} *
+// ? @PARAM: "startTimestamp" => Start timestamp
+// ? @PARAM: "endTimestamp" => End timestamp
+router.get("/one/:roundId", async (req, res) => {
+  try {
+    const roundId = "#" + req.params.roundId;
+    const round = await getRound(roundId);
+
+    return res.status(200).json(round);
   } catch (err) {
     console.log(
       "ERROR FETCHING ROUNDS BETWEEN TIMESTAMPS:",

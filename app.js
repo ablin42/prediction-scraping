@@ -64,6 +64,7 @@ app.use(function (req, res, next) {
     "https://pcsdata.herokuapp.com",
     "http://localhost:3000",
     "https://cucksistants.herokuapp.com",
+    "http://127.0.0.1:5500",
   ];
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin))
@@ -96,7 +97,7 @@ app.use("/api/oracle", oracleApi);
 app.use("/api/rounds", roundsApi);
 
 scrapePage();
-// refreshAverages();
+// //refreshAverages();
 
 // * MAIN ROUTE *
 
