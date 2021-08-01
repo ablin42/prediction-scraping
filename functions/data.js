@@ -157,23 +157,22 @@ function groupByHour(dataset) {
 
   dataset.forEach((item) => {
     const { hour, avgSafe, avgRisky, safePercentWr, riskyPercentWr } = item;
-    if (avgSafe === "N/A") return;
 
     if (!arr[hour])
       arr[hour] = {
         hour,
         count: 1,
-        avgSafe,
-        avgRisky,
-        safePercentWr,
-        riskyPercentWr,
+        avgSafe: avgSafe !== "N/A" ? avgSafe : 0,
+        avgRisky: avgRisky !== "N/A" ? avgRisky : 0,
+        safePercentWr: safePercentWr !== "N/A" ? safePercentWr : 0,
+        riskyPercentW: riskyPercentWr !== "N/A" ? riskyPercentWr : 0,
       };
     else {
       arr[hour].count += 1;
-      arr[hour].avgSafe += avgSafe;
-      arr[hour].avgRisky += avgRisky;
-      arr[hour].safePercentWr += safePercentWr;
-      arr[hour].riskyPercentWr += riskyPercentWr;
+      arr[hour].avgSafe += avgSafe !== "N/A" ? avgSafe : 0;
+      arr[hour].avgRisky += avgRisky !== "N/A" ? avgRisky : 0;
+      arr[hour].safePercentWr += safePercentWr !== "N/A" ? safePercentWr : 0;
+      arr[hour].riskyPercentWr += riskyPercentWr !== "N/A" ? riskyPercentWr : 0;
     }
   });
 

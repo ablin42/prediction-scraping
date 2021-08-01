@@ -51,17 +51,16 @@ router.get(
   "/period/hourly/:startTimestamp/:endTimestamp/:grouped",
   async (req, res) => {
     try {
-      const startTimestamp = req.params.startTimestamp;
-      const endTimestamp = req.params.endTimestamp;
+      const startTimestamp = parseInt(req.params.startTimestamp);
+      const endTimestamp = parseInt(req.params.endTimestamp);
       const grouped = req.params.grouped;
       const nbHours = Math.round(
         (endTimestamp - startTimestamp) / 1000 / 60 / 60
       );
       let dataset = [];
-
-      for (let i = nbHours; i >= 0; i--) {
-        const start = startTimestamp - (i + 1) * 60 * 60 * 1000;
-        const end = startTimestamp - i * 60 * 60 * 1000;
+      for (let i = 0; i <= nbHours; i++) {
+        const start = startTimestamp + i * 60 * 60 * 1000;
+        const end = startTimestamp + (i + 1) * 60 * 60 * 1000;
         const entries = await getRoundByTimestamp(start, end);
         const data = getRoundData(entries);
         const averages = getAverages(data);
