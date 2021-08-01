@@ -190,6 +190,37 @@ function groupByHour(dataset) {
   return averages;
 }
 
+function groupEsperanceByHour(dataset) {
+  const arr = [];
+
+  dataset.forEach((item) => {
+    const { hour, safeEsperance, riskyEsperance } = item;
+
+    if (!arr[hour])
+      arr[hour] = {
+        hour,
+        count: 1,
+        safeEsperance: safeEsperance !== "N/A" ? safeEsperance : 0,
+        riskyEsperance: riskyEsperance !== "N/A" ? riskyEsperance : 0,
+      };
+    else {
+      arr[hour].count += 1;
+      arr[hour].safeEsperance += safeEsperance !== "N/A" ? safeEsperance : 0;
+      arr[hour].riskyEsperance += riskyEsperance !== "N/A" ? riskyEsperance : 0;
+    }
+  });
+
+  const averages = arr.map((item) => {
+    const { hour, count, safeEsperance, riskyEsperance } = item;
+    return {
+      hour,
+      safeEsperance: formatAvg(safeEsperance / count),
+      riskyEsperance: formatAvg(riskyEsperance / count),
+    };
+  });
+  return averages;
+}
+
 // * RETURNS FORMATTED AVERAGE *
 function formatAvg(number) {
   if (!number) return 0;
@@ -262,4 +293,5 @@ module.exports = {
   getAverages,
   getEsperance,
   getOracleData,
+  groupEsperanceByHour,
 };

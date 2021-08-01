@@ -120,7 +120,8 @@ const scrapePage = async () => {
           LIVE.oraclePrice !== oraclePrice &&
           oraclePrice !== undefined &&
           oraclePrice !== 0 &&
-          !Number.isNaN(oraclePrice)
+          !Number.isNaN(oraclePrice) &&
+          timeLeft !== "Closing"
         )
           await _saveOracle(LIVE_DOM, {
             BNBPrice,

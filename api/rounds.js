@@ -17,6 +17,7 @@ const {
   getRoundData,
   getEsperance,
   groupByHour,
+  groupEsperanceByHour,
 } = require("../functions/data");
 
 // * RETURN MEDIAN DATA FOR ROUNDS *
@@ -74,6 +75,54 @@ router.get(
         });
       }
       if (grouped === "true") dataset = groupByHour(dataset);
+
+      return res.status(200).json(dataset);
+    } catch (err) {
+      console.log("ERROR FETCHING PERIOD:", err, req.headers, req.ipAddress);
+      return res.status(200).json({ error: true, message: err.message });
+    }
+  }
+);
+
+// * RETURN ROUNDS FROM X HOURS AGO *
+// ? @PARAM: "period" => A string identifying a key-value pair
+router.get(
+  "/esperance/hourly/:startTimestamp/:endTimestamp/:grouped",
+  async (req, res) => {
+    try {
+      const startTimestamp = parseInt(req.params.startTimestamp);
+      const endTimestamp = parseInt(req.params.endTimestamp);
+      const grouped = req.params.grouped;
+      const nbHours = Math.round(
+        (endTimestamp - startTimestamp) / 1000 / 60 / 60
+      );
+      let dataset = [];
+      for (let i = 0; i <= nbHours; i++) {
+        const start = startTimestamp + i * 60 * 60 * 1000;
+        const end = startTimestamp + (i + 1) * 60 * 60 * 1000;
+        const entries = await getRoundByTimestamp(start, end);
+        const data = getRoundData(entries);
+        const averages = getAverages(data);
+
+        const safeEsperance = getEsperance(
+          averages.safePercentWr,
+          averages.riskyPercentWr,
+          averages.avgSafe,
+          10
+        );
+        const riskyEsperance = getEsperance(
+          averages.riskyPercentWr,
+          averages.safePercentWr,
+          averages.avgRisky,
+          10
+        );
+        dataset.push({
+          hour: new Date(start).getHours(), //getUTCHours
+          safeEsperance,
+          riskyEsperance,
+        });
+      }
+      if (grouped === "true") dataset = groupEsperanceByHour(dataset);
 
       return res.status(200).json(dataset);
     } catch (err) {
