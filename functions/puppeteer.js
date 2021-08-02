@@ -81,12 +81,17 @@ const scrapePage = async () => {
   }, 1000 * 60 * 60 * 1);
 
   setInterval(async function () {
-    if (STATUS === "DOWN") return;
+    // if (STATUS === "DOWN") return;
     const { BNBPrice, BTCPrice, secondsSinceCandleOpen } =
       await getEvaluateParams();
 
     await page.evaluate(
       async (BNBPrice, BTCPrice, secondsSinceCandleOpen) => {
+        const MARKET_PAUSED = document.querySelector(
+          "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1) > div:nth-child(1) > div > div > div > div:nth-child(2) > div > h2"
+        );
+        if (!!MARKET_PAUSED && MARKET_PAUSED.innerText === "Markets Paused")
+          return;
         // * Get Timer *
         const timeLeft = document.querySelector(
           "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1) > div:nth-child(1) > div > div > div:nth-child(1)  > div:nth-child(3) > div > div:nth-child(1)  > div > div:nth-child(1) > div:nth-child(1)"

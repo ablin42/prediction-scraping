@@ -9,34 +9,28 @@ const RoundSchema = new mongoose.Schema(
       unique: true,
     },
     poolValue: {
-      type: mongoose.Schema.Types.Mixed,
+      type: Number,
       required: true,
-      content: mongoose.Schema.Types.Mixed,
     },
     openPrice: {
-      type: mongoose.Schema.Types.Mixed,
+      type: Number,
       required: true,
-      content: mongoose.Schema.Types.Mixed,
     },
     closePrice: {
-      type: mongoose.Schema.Types.Mixed,
+      type: Number,
       required: true,
-      content: mongoose.Schema.Types.Mixed,
     },
     diff: {
-      type: mongoose.Schema.Types.Mixed,
+      type: Number,
       required: true,
-      content: mongoose.Schema.Types.Mixed,
     },
     payoutUP: {
-      type: mongoose.Schema.Types.Mixed,
+      type: Number,
       required: true,
-      content: mongoose.Schema.Types.Mixed,
     },
     payoutDOWN: {
-      type: mongoose.Schema.Types.Mixed,
+      type: Number,
       required: true,
-      content: mongoose.Schema.Types.Mixed,
     },
     history: {
       type: Array,
