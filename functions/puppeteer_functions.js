@@ -3,31 +3,10 @@ const { getRound, getLastRound, addRound } = require("../queries/rounds");
 const { incrementTotalAverage } = require("../queries/averages");
 const { addOracle, getLastOracle } = require("../queries/oracle");
 const { getTickerPrice, getCandle } = require("../queries/binance");
-const { setStatus, getStatus } = require("../queries/status");
 // @FUNCTIONS
 const mailer = require("./contact");
 const { isExpired, getWinningPayout } = require("./parser");
 const { formatAvg } = require("./data");
-
-// * CHECK THE PREDICTION GAME STATUS (UP/DOWN) *
-async function checkStatus() {
-  const status = await getStatus();
-  const lastRound = await getLastRound();
-  const timestamp = +new Date();
-  const INTERVAL = 1000 * 60 * 10;
-
-  if (timestamp - lastRound.date > INTERVAL && status.isUp) {
-    await setStatus(false);
-    if (await mailer(process.env.EMAIL, "Market is [ DOWN ]", ""))
-      console.log("An error occured while sending the mail");
-    return (STATUS = "DOWN");
-  } else if (timestamp - lastRound.date < INTERVAL && !status.isUp) {
-    await setStatus(true);
-    if (await mailer(process.env.EMAIL, "Market is [ UP ]", ""))
-      console.log("An error occured while sending the mail");
-    return (STATUS = "UP");
-  }
-}
 
 // * SAVE EXPIRED ROUND THAT WE MOST LIKELY DIDNT MONITOR (due to our app being offline) *
 async function saveExpiredRounds(DOM) {
@@ -175,6 +154,5 @@ module.exports = {
   saveRoundLive,
   formatForClass,
   saveExpiredRounds,
-  checkStatus,
   saveRound,
 };

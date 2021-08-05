@@ -1,6 +1,8 @@
 // @EXTERNALS
 const puppeteer = require("puppeteer");
+const { ethers } = require("ethers");
 // @FUNCTIONS
+const mailer = require("./contact");
 const { getObjectFromDOM, getNextFromDom } = require("./parser");
 const {
   getEvaluateParams,
@@ -8,10 +10,11 @@ const {
   saveRoundLive,
   formatForClass,
   saveExpiredRounds,
-  checkStatus,
 } = require("./puppeteer_functions");
 // @CLASSES
 const { Rounds } = require("../classes/rounds");
+// @MISC
+const { BNBPP_ABI } = require("../helpers/bnbpp-abi.js");
 
 // * FUNCTION CALLED ONCE AT BOOT *
 // * RUNS PUPPETEER, COLLECT & SAVE DATA *
@@ -24,8 +27,13 @@ const scrapePage = async () => {
   const browser = await puppeteer.launch(options);
   const page = await browser.newPage();
   const newRounds = new Rounds();
-  const INTERVAL = 1000 * 60 * 10;
-  let STATUS = "UP";
+
+  const BNBPP_ADDRESS = "0x516ffd7d1e0ca40b1879935b2de87cb20fc1124b";
+  const provider = new ethers.providers.JsonRpcProvider(
+    "https://bsc-dataseed.binance.org/"
+  );
+  const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  const bnbppContract = new ethers.Contract(BNBPP_ADDRESS, BNBPP_ABI, signer);
 
   // * EXPOSE FUNCTIONS FOR PUPPETEER *
   // * PARSER *
@@ -67,10 +75,15 @@ const scrapePage = async () => {
   // });
   await page.goto("https://pancakeswap.finance/prediction");
 
-  // * MONITOR LAST ROUND ADDED TO DETECT IF PANCAKESWAP BETS SERVICES ARE DOWN *
-  setInterval(async function () {
-    STATUS = checkStatus();
-  }, INTERVAL);
+  bnbppContract.on("Unpause", async () => {
+    if (await mailer(process.env.EMAIL, "Market is [ UP ]", ""))
+      console.log("An error occured while sending the mail");
+  });
+
+  bnbppContract.on("Pause", async () => {
+    if (await mailer(process.env.EMAIL, "Market is [ DOWN ]", ""))
+      console.log("An error occured while sending the mail");
+  });
 
   // * WAIT FOR PANCAKESWAP ROUNDS TO BE LOADED INTO DOM *
   // * COLLECTS DATA EVERY 10 SECONDS *
@@ -81,7 +94,8 @@ const scrapePage = async () => {
   }, 1000 * 60 * 60 * 1);
 
   setInterval(async function () {
-    // if (STATUS === "DOWN") return;
+    const PAUSED = await bnbppContract.paused();
+    if (PAUSED) return;
     const { BNBPrice, BTCPrice, secondsSinceCandleOpen } =
       await getEvaluateParams();
 
