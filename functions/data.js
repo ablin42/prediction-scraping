@@ -169,7 +169,7 @@ function groupByHour(dataset) {
         safePercentWr: safePercentWr !== "N/A" ? safePercentWr : 0,
         riskyPercentW: riskyPercentWr !== "N/A" ? riskyPercentWr : 0,
       };
-    else {
+    else if (avgSafe !== "N/A" && avgRisky !== "N/A") {
       arr[hour].count += 1;
       arr[hour].avgSafe += avgSafe !== "N/A" ? avgSafe : 0;
       arr[hour].avgRisky += avgRisky !== "N/A" ? avgRisky : 0;
@@ -205,7 +205,7 @@ function groupEsperanceByHour(dataset) {
         safeEsperance: safeEsperance !== "N/A" ? safeEsperance : 0,
         riskyEsperance: riskyEsperance !== "N/A" ? riskyEsperance : 0,
       };
-    else {
+    else if (safeEsperance !== "N/A" && riskyEsperance !== "N/A") {
       arr[hour].count += 1;
       arr[hour].safeEsperance += safeEsperance !== "N/A" ? safeEsperance : 0;
       arr[hour].riskyEsperance += riskyEsperance !== "N/A" ? riskyEsperance : 0;

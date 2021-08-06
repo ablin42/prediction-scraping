@@ -6,6 +6,7 @@ const sanitize = require("mongo-sanitize");
 const path = require("path");
 require("dotenv").config();
 // @QUERIES
+const { transformToNumber } = require("./queries/rounds");
 // @FUNCTIONS
 const { scrapePage } = require("./functions/puppeteer");
 // @MODELS
@@ -65,6 +66,7 @@ app.use(function (req, res, next) {
     "http://localhost:3000",
     "https://cucksistants.herokuapp.com",
     "http://127.0.0.1:5500",
+    "https://bestbetsbot.herokuapp.com",
   ];
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin))
@@ -100,10 +102,12 @@ scrapePage();
 // //refreshAverages();
 
 // * MAIN ROUTE *
-
 app.get("/", async (req, res) => {
   try {
-    return res.status(200).send("404");
+    return res.status(200).send("paused");
+
+    // const result = await transformToNumber();
+    // return res.status(200).json(result);
   } catch (err) {
     console.log("HOME ROUTE ERROR:", err, req.headers, req.ipAddress);
     return res.status(200).send("404");

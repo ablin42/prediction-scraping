@@ -9,6 +9,7 @@ const {
   getRoundByTimestamp,
   getRound,
 } = require("../queries/rounds");
+const { getRoundOracle } = require("../queries/oracle");
 const { periodToHours } = require("../functions/parser");
 // @FUNCTIONS
 const {
@@ -83,7 +84,7 @@ router.get(
   }
 );
 
-// * RETURN ROUNDS FROM X HOURS AGO *
+// * RETURN ESPERANCE FROM ROUNDS BETWEEN TIMESTAMPS *
 // ? @PARAM: "period" => A string identifying a key-value pair
 router.get(
   "/esperance/hourly/:startTimestamp/:endTimestamp/:grouped",
@@ -125,7 +126,12 @@ router.get(
 
       return res.status(200).json(dataset);
     } catch (err) {
-      console.log("ERROR FETCHING PERIOD:", err, req.headers, req.ipAddress);
+      console.log(
+        "ERROR FETCHING PERIOD (esperance):",
+        err,
+        req.headers,
+        req.ipAddress
+      );
       return res.status(200).json({ error: true, message: err.message });
     }
   }
@@ -213,6 +219,33 @@ router.get("/one/:roundId", async (req, res) => {
   } catch (err) {
     console.log(
       "ERROR FETCHING ROUNDS BETWEEN TIMESTAMPS:",
+      err,
+      req.headers,
+      req.ipAddress
+    );
+    return res.status(200).json({ error: true, message: err.message });
+  }
+});
+
+// * RETURN SIMULATION DATA OF A ROUND FOR BESTBETSBOT *
+// ? @PARAM: "roundId" => Round ID
+router.get("/simulate/:roundId", async (req, res) => {
+  try {
+    const roundId = "#" + req.params.roundId;
+    const round = await getRound(roundId);
+    const resultRound = await getRound(`#${+req.params.roundId + 1}`);
+    const endTimestamp = +round.date;
+    const startTimestamp = new Date(endTimestamp) - 1000 * 60 * 60;
+    const entries = await getRoundByTimestamp(startTimestamp, endTimestamp);
+    const data = getRoundData(entries);
+    const averages = getAverages(data);
+    const roundOracles = await getRoundOracle(roundId);
+    const oracle = roundOracles[roundOracles.length - 1];
+
+    return res.status(200).json({ resultRound, averages, oracle });
+  } catch (err) {
+    console.log(
+      "ERROR FETCHING SIMULATION DATA",
       err,
       req.headers,
       req.ipAddress
