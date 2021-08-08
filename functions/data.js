@@ -167,7 +167,7 @@ function groupByHour(dataset) {
         avgSafe: avgSafe !== "N/A" ? avgSafe : 0,
         avgRisky: avgRisky !== "N/A" ? avgRisky : 0,
         safePercentWr: safePercentWr !== "N/A" ? safePercentWr : 0,
-        riskyPercentW: riskyPercentWr !== "N/A" ? riskyPercentWr : 0,
+        riskyPercentWr: riskyPercentWr !== "N/A" ? riskyPercentWr : 0,
       };
     else if (avgSafe !== "N/A" && avgRisky !== "N/A") {
       arr[hour].count += 1;
