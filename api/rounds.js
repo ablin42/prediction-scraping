@@ -227,6 +227,39 @@ router.get("/one/:roundId", async (req, res) => {
   }
 });
 
+function getAmounts(round) {
+  const filtered = round.history.filter((item) => {
+    const [minutes, seconds] = item.timeLeft.split(":").map((item) => +item);
+    const secondsLeft = parseInt((minutes * 60 + seconds).toFixed(0));
+    return secondsLeft <= 22 && secondsLeft > 12 && item.status === "Next";
+  });
+  const closingHistory = filtered[filtered.length - 1];
+  const payoutUP = parseFloat(closingHistory.payoutUP.slice(0, -1));
+  const payoutDOWN = parseFloat(closingHistory.payoutDOWN.slice(0, -1));
+  const poolValue = parseFloat(closingHistory.poolValue);
+
+  return {
+    bullAmount: poolValue / payoutUP,
+    bearAmount: poolValue / payoutDOWN,
+  };
+}
+
+// function getAmounts(round) {
+//   const filtered = round.history.filter(
+//     (item) => item.timeLeft === "Closing" && item.status === "Next"
+//   );
+//   console.log(filtered);
+//   const closingHistory = filtered[filtered.length - 1];
+//   const payoutUP = parseFloat(closingHistory.payoutUP.slice(0, -1));
+//   const payoutDOWN = parseFloat(closingHistory.payoutDOWN.slice(0, -1));
+//   const poolValue = parseFloat(closingHistory.poolValue);
+
+//   return {
+//     bullAmount: poolValue / payoutUP,
+//     bearAmount: poolValue / payoutDOWN,
+//   };
+// }
+
 // * RETURN SIMULATION DATA OF A ROUND FOR BESTBETSBOT *
 // ? @PARAM: "roundId" => Round ID
 router.get("/simulate/:roundId", async (req, res) => {
@@ -241,14 +274,35 @@ router.get("/simulate/:roundId", async (req, res) => {
     const averages = getAverages(data);
     const roundOracles = await getRoundOracle(roundId);
     const oracle = roundOracles[roundOracles.length - 1];
+    const { bullAmount, bearAmount } = getAmounts(round);
+    const safeEsperance = getEsperance(
+      averages.safePercentWr,
+      averages.riskyPercentWr,
+      averages.avgSafe,
+      10
+    );
+    const riskyEsperance = getEsperance(
+      averages.riskyPercentWr,
+      averages.safePercentWr,
+      averages.avgRisky,
+      10
+    );
 
-    return res.status(200).json({ resultRound, averages, oracle });
+    return res.status(200).json({
+      bullAmount,
+      bearAmount,
+      resultRound,
+      averages,
+      oracle,
+      safeEsperance,
+      riskyEsperance,
+      safePercentWr: averages.safePercentWr,
+      riskyPercentWr: averages.riskyPercentWr,
+    });
   } catch (err) {
     console.log(
-      "ERROR FETCHING SIMULATION DATA",
-      err,
-      req.headers,
-      req.ipAddress
+      `ERROR FETCHING SIMULATION DATA FOR ROUND [#${req.params.roundId}]`,
+      err.message
     );
     return res.status(200).json({ error: true, message: err.message });
   }

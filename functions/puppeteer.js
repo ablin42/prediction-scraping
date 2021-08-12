@@ -16,7 +16,6 @@ const { Rounds } = require("../classes/rounds");
 // @MISC
 const { BNBPP_ABI } = require("../helpers/bnbpp-abi.js");
 
-// * FUNCTION CALLED ONCE AT BOOT *
 // * RUNS PUPPETEER, COLLECT & SAVE DATA *
 const scrapePage = async () => {
   // * INITIALIZE PUPPETEER & ROUNDS CLASS *
@@ -73,6 +72,7 @@ const scrapePage = async () => {
   // await page.exposeFunction("screenshot", async (obj) => {
   //   await page.screenshot(obj);
   // });
+
   await page.goto("https://pancakeswap.finance/prediction");
 
   bnbppContract.on("Unpause", async () => {
@@ -87,30 +87,35 @@ const scrapePage = async () => {
 
   // * WAIT FOR PANCAKESWAP ROUNDS TO BE LOADED INTO DOM *
   // * COLLECTS DATA EVERY 10 SECONDS *
-  setInterval(async function () {
-    //await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
-    await page.reload({ timeout: 1000 * 60 * 60 * 1 });
-    await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
-  }, 1000 * 60 * 60 * 1);
+  // setInterval(async function () {
+  //   await page.reload({ timeout: 1000 * 60 * 60 * 1 });
+  //   await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
+  // }, 1000 * 60 * 60 * 1);
+
+  // let isNewRound = false;
+  // let isRoundLocked = false;
+  // bnbppContract.on("StartRound", async () => {
+  //   isNewRound = true;
+  // });
+  // bnbppContract.on("LockRound", async () => {
+  //   isRoundLocked = true;
+  // });
 
   setInterval(async function () {
     const PAUSED = await bnbppContract.paused();
-    if (PAUSED) return;
+    if (PAUSED) return; //||isroundlocked
     const { BNBPrice, BTCPrice, secondsSinceCandleOpen } =
       await getEvaluateParams();
 
     await page.evaluate(
       async (BNBPrice, BTCPrice, secondsSinceCandleOpen) => {
-        const MARKET_PAUSED = document.querySelector(
-          "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1) > div:nth-child(1) > div > div > div > div:nth-child(2) > div > h2"
-        );
-        if (!!MARKET_PAUSED && MARKET_PAUSED.innerText === "Markets Paused")
-          return;
+        //isnewround
         // * Get Timer *
         const timeLeft = document.querySelector(
           "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1) > div:nth-child(1) > div > div > div:nth-child(1)  > div:nth-child(3) > div > div:nth-child(1)  > div > div:nth-child(1) > div:nth-child(1)"
         ).innerHTML;
 
+        // * Get Oracle Price *
         const oraclePrice = parseFloat(
           document
             .querySelector(
@@ -226,6 +231,7 @@ const scrapePage = async () => {
       BNBPrice,
       BTCPrice,
       secondsSinceCandleOpen
+      // isNewRound
     );
   }, 10000);
 };

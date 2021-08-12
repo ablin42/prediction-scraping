@@ -234,50 +234,6 @@ function getPercentage(number, total) {
   return (number * 100) / total;
 }
 
-/* METHODE 1
-function getEsperance(pWin, pLose, win, lose) {
-  return formatAvg(
-    (pWin / 100) * (win * 10 - 10) + (pLose / 100) * - 10
-    0.7 * 4 + 0.3 * - 10 = 0.2
-  );
-}
-*/
-
-/* METHODE 2
-function getEsperance(pWin, pLose, win, lose) {
-  return formatAvg(
-    (pWin / 100) * (win * 10) + (pLose / 100) * 0 - 10
-    0.7 * 14 + 0.3 * 0 - 10 = -0.2
-  );
-}
-*/
-
-/* METHODE 3
-function getEsperance(pWin, pLose, win, lose) {
-  return formatAvg(
-    (pWin / 100) * (win * 10 - 10) - (pLose / 100) * 10
-    0.7 * (1.4 * 10 - 10) - 0.3 * 10 = -0.2
-  );
-}
-*/
-
-/* METHODE 4
-function getEsperance(pWin, pLose, win, lose) {
-  return formatAvg(
-    (pWin / 100) * (win * 10 - 10) - (pLose / 100) * 10
-    0.7 * (1.4 * 10 - 10) - 0.3 * 10 = -0.2
-  );
-}
-*/
-
-/* OLD ESPERANCE
-function getEsperance(pWin, pLose, win, lose) {
-  return formatAvg(
-    (pWin / 100) * (win * 10) - (pLose / 100) * (lose * 10) - 10
-  );
-}
-*/
-
 // * RETURNS ESPERANCE *
 function getEsperance(pWin, pLose, win, betAmount) {
   return formatAvg(
