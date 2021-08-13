@@ -159,7 +159,15 @@ router.get("/period/:period", async (req, res) => {
       10
     );
 
-    const obj = { ...averages, safeEsperance, riskyEsperance, entries, median };
+    const obj = {
+      ...averages,
+      safeEsperance,
+      riskyEsperance,
+      entries,
+      median,
+      riskyPercentWr: averages.riskyPercentWr,
+      safePercentWr: averages.safePercentWr,
+    };
     return res.status(200).json(obj);
   } catch (err) {
     console.log("ERROR FETCHING PERIOD:", err, req.headers, req.ipAddress);
