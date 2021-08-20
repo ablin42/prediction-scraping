@@ -90,10 +90,10 @@ const scrapePage = async () => {
 
   // * WAIT FOR PANCAKESWAP ROUNDS TO BE LOADED INTO DOM *
   // * COLLECTS DATA EVERY 10 SECONDS *
-  // setInterval(async function () {
-  //   await page.reload({ timeout: 1000 * 60 * 60 * 1 });
-  //   await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
-  // }, 1000 * 60 * 60 * 1);
+   setInterval(async function () {
+     await page.reload({ timeout: 1000 * 60 * 60 * 1 });
+     await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
+   }, 1000 * 60 * 60 * 1);
 
   // let isNewRound = false;
   // let isRoundLocked = false;
