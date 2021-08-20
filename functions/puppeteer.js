@@ -18,6 +18,17 @@ const { BNBPP_ABI } = require("../helpers/bnbpp-abi.js");
 
 // * RUNS PUPPETEER, COLLECT & SAVE DATA *
 const scrapePage = async () => {
+  const newRounds = new Rounds();
+  const BNBPP_ADDRESS = "0x516ffd7d1e0ca40b1879935b2de87cb20fc1124b";
+  const provider = new ethers.providers.JsonRpcProvider(
+    "https://bsc-dataseed.binance.org/"
+  );
+  const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  const bnbppContract = new ethers.Contract(BNBPP_ADDRESS, BNBPP_ABI, signer);
+
+  // setInterval(() => {
+
+  // }, 1000 * 60 * 60 * 4);
   // * INITIALIZE PUPPETEER & ROUNDS CLASS *
   const options = {
     // headless: false,
@@ -25,14 +36,6 @@ const scrapePage = async () => {
   };
   const browser = await puppeteer.launch(options);
   const page = await browser.newPage();
-  const newRounds = new Rounds();
-
-  const BNBPP_ADDRESS = "0x516ffd7d1e0ca40b1879935b2de87cb20fc1124b";
-  const provider = new ethers.providers.JsonRpcProvider(
-    "https://bsc-dataseed.binance.org/"
-  );
-  const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-  const bnbppContract = new ethers.Contract(BNBPP_ADDRESS, BNBPP_ABI, signer);
 
   // * EXPOSE FUNCTIONS FOR PUPPETEER *
   // * PARSER *
@@ -233,7 +236,7 @@ const scrapePage = async () => {
       secondsSinceCandleOpen
       // isNewRound
     );
-  }, 10000);
+  }, 5000);
 };
 
 module.exports = {

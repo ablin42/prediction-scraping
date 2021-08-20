@@ -242,13 +242,15 @@ function getAmounts(round) {
     return secondsLeft <= 22 && secondsLeft > 12 && item.status === "Next";
   });
   const closingHistory = filtered[filtered.length - 1];
-  const payoutUP = parseFloat(closingHistory.payoutUP.slice(0, -1));
-  const payoutDOWN = parseFloat(closingHistory.payoutDOWN.slice(0, -1));
+  const payoutUP = parseFloat(closingHistory.payoutUP); //.slice(0, -1)
+  const payoutDOWN = parseFloat(closingHistory.payoutDOWN); //.slice(0, -1)
   const poolValue = parseFloat(closingHistory.poolValue);
+  // console.log(round.roundId, closingHistory, payoutUP, payoutDOWN);
 
   return {
     bullAmount: poolValue / payoutUP,
     bearAmount: poolValue / payoutDOWN,
+    oracle: closingHistory,
   };
 }
 
@@ -280,9 +282,7 @@ router.get("/simulate/:roundId", async (req, res) => {
     const entries = await getRoundByTimestamp(startTimestamp, endTimestamp);
     const data = getRoundData(entries);
     const averages = getAverages(data);
-    const roundOracles = await getRoundOracle(roundId);
-    const oracle = roundOracles[roundOracles.length - 1];
-    const { bullAmount, bearAmount } = getAmounts(round);
+    const { bullAmount, bearAmount, oracle } = getAmounts(resultRound);
     const safeEsperance = getEsperance(
       averages.safePercentWr,
       averages.riskyPercentWr,
