@@ -1,18 +1,21 @@
 const BNBPP_ABI = [
   {
     inputs: [
-      { internalType: "address", name: "_oracleAddress", type: "address" },
+      {
+        internalType: "contract AggregatorV3Interface",
+        name: "_oracle",
+        type: "address",
+      },
       { internalType: "address", name: "_adminAddress", type: "address" },
       { internalType: "address", name: "_operatorAddress", type: "address" },
-      { internalType: "uint256", name: "_intervalSeconds", type: "uint256" },
-      { internalType: "uint256", name: "_bufferSeconds", type: "uint256" },
+      { internalType: "uint256", name: "_intervalBlocks", type: "uint256" },
+      { internalType: "uint256", name: "_bufferBlocks", type: "uint256" },
       { internalType: "uint256", name: "_minBetAmount", type: "uint256" },
       {
         internalType: "uint256",
         name: "_oracleUpdateAllowance",
         type: "uint256",
       },
-      { internalType: "uint256", name: "_treasuryFee", type: "uint256" },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
@@ -29,7 +32,7 @@ const BNBPP_ABI = [
       {
         indexed: true,
         internalType: "uint256",
-        name: "epoch",
+        name: "currentEpoch",
         type: "uint256",
       },
       {
@@ -54,7 +57,7 @@ const BNBPP_ABI = [
       {
         indexed: true,
         internalType: "uint256",
-        name: "epoch",
+        name: "currentEpoch",
         type: "uint256",
       },
       {
@@ -79,7 +82,7 @@ const BNBPP_ABI = [
       {
         indexed: true,
         internalType: "uint256",
-        name: "epoch",
+        name: "currentEpoch",
         type: "uint256",
       },
       {
@@ -96,15 +99,28 @@ const BNBPP_ABI = [
     anonymous: false,
     inputs: [
       {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
+    ],
+    name: "ClaimTreasury",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
         indexed: true,
         internalType: "uint256",
         name: "epoch",
         type: "uint256",
       },
       {
-        indexed: true,
+        indexed: false,
         internalType: "uint256",
-        name: "roundId",
+        name: "blockNumber",
         type: "uint256",
       },
       { indexed: false, internalType: "int256", name: "price", type: "int256" },
@@ -122,46 +138,14 @@ const BNBPP_ABI = [
         type: "uint256",
       },
       {
-        indexed: true,
+        indexed: false,
         internalType: "uint256",
-        name: "roundId",
+        name: "blockNumber",
         type: "uint256",
       },
       { indexed: false, internalType: "int256", name: "price", type: "int256" },
     ],
     name: "LockRound",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "address",
-        name: "admin",
-        type: "address",
-      },
-    ],
-    name: "NewAdminAddress",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "bufferSeconds",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "intervalSeconds",
-        type: "uint256",
-      },
-    ],
-    name: "NewBufferAndIntervalSeconds",
     type: "event",
   },
   {
@@ -180,65 +164,7 @@ const BNBPP_ABI = [
         type: "uint256",
       },
     ],
-    name: "NewMinBetAmount",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "address",
-        name: "operator",
-        type: "address",
-      },
-    ],
-    name: "NewOperatorAddress",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "address",
-        name: "oracle",
-        type: "address",
-      },
-    ],
-    name: "NewOracle",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "oracleUpdateAllowance",
-        type: "uint256",
-      },
-    ],
-    name: "NewOracleUpdateAllowance",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "epoch",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "treasuryFee",
-        type: "uint256",
-      },
-    ],
-    name: "NewTreasuryFee",
+    name: "MinBetAmountUpdated",
     type: "event",
   },
   {
@@ -264,7 +190,7 @@ const BNBPP_ABI = [
     anonymous: false,
     inputs: [
       {
-        indexed: true,
+        indexed: false,
         internalType: "uint256",
         name: "epoch",
         type: "uint256",
@@ -284,6 +210,31 @@ const BNBPP_ABI = [
       },
     ],
     name: "Paused",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "epoch",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "rewardRate",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "treasuryRate",
+        type: "uint256",
+      },
+    ],
+    name: "RatesUpdated",
     type: "event",
   },
   {
@@ -326,6 +277,12 @@ const BNBPP_ABI = [
         name: "epoch",
         type: "uint256",
       },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "blockNumber",
+        type: "uint256",
+      },
     ],
     name: "StartRound",
     type: "event",
@@ -334,39 +291,7 @@ const BNBPP_ABI = [
     anonymous: false,
     inputs: [
       {
-        indexed: true,
-        internalType: "address",
-        name: "token",
-        type: "address",
-      },
-      {
         indexed: false,
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
-      },
-    ],
-    name: "TokenRecovery",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
-      },
-    ],
-    name: "TreasuryClaim",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
         internalType: "uint256",
         name: "epoch",
         type: "uint256",
@@ -390,7 +315,7 @@ const BNBPP_ABI = [
   },
   {
     inputs: [],
-    name: "MAX_TREASURY_FEE",
+    name: "TOTAL_RATE",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
@@ -403,14 +328,14 @@ const BNBPP_ABI = [
     type: "function",
   },
   {
-    inputs: [{ internalType: "uint256", name: "epoch", type: "uint256" }],
+    inputs: [],
     name: "betBear",
     outputs: [],
     stateMutability: "payable",
     type: "function",
   },
   {
-    inputs: [{ internalType: "uint256", name: "epoch", type: "uint256" }],
+    inputs: [],
     name: "betBull",
     outputs: [],
     stateMutability: "payable",
@@ -418,13 +343,13 @@ const BNBPP_ABI = [
   },
   {
     inputs: [],
-    name: "bufferSeconds",
+    name: "bufferBlocks",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [{ internalType: "uint256[]", name: "epochs", type: "uint256[]" }],
+    inputs: [{ internalType: "uint256", name: "epoch", type: "uint256" }],
     name: "claim",
     outputs: [],
     stateMutability: "nonpayable",
@@ -498,35 +423,14 @@ const BNBPP_ABI = [
     name: "getUserRounds",
     outputs: [
       { internalType: "uint256[]", name: "", type: "uint256[]" },
-      {
-        components: [
-          {
-            internalType: "enum PancakePredictionV2.Position",
-            name: "position",
-            type: "uint8",
-          },
-          { internalType: "uint256", name: "amount", type: "uint256" },
-          { internalType: "bool", name: "claimed", type: "bool" },
-        ],
-        internalType: "struct PancakePredictionV2.BetInfo[]",
-        name: "",
-        type: "tuple[]",
-      },
       { internalType: "uint256", name: "", type: "uint256" },
     ],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [{ internalType: "address", name: "user", type: "address" }],
-    name: "getUserRoundsLength",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
     inputs: [],
-    name: "intervalSeconds",
+    name: "intervalBlocks",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
@@ -539,7 +443,7 @@ const BNBPP_ABI = [
     name: "ledger",
     outputs: [
       {
-        internalType: "enum PancakePredictionV2.Position",
+        internalType: "enum BnbPricePrediction.Position",
         name: "position",
         type: "uint8",
       },
@@ -560,19 +464,6 @@ const BNBPP_ABI = [
     inputs: [],
     name: "operatorAddress",
     outputs: [{ internalType: "address", name: "", type: "address" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "oracle",
-    outputs: [
-      {
-        internalType: "contract AggregatorV3Interface",
-        name: "",
-        type: "address",
-      },
-    ],
     stateMutability: "view",
     type: "function",
   },
@@ -613,16 +504,6 @@ const BNBPP_ABI = [
   },
   {
     inputs: [
-      { internalType: "address", name: "_token", type: "address" },
-      { internalType: "uint256", name: "_amount", type: "uint256" },
-    ],
-    name: "recoverToken",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
       { internalType: "uint256", name: "epoch", type: "uint256" },
       { internalType: "address", name: "user", type: "address" },
     ],
@@ -639,17 +520,22 @@ const BNBPP_ABI = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "rewardRate",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     name: "rounds",
     outputs: [
       { internalType: "uint256", name: "epoch", type: "uint256" },
-      { internalType: "uint256", name: "startTimestamp", type: "uint256" },
-      { internalType: "uint256", name: "lockTimestamp", type: "uint256" },
-      { internalType: "uint256", name: "closeTimestamp", type: "uint256" },
+      { internalType: "uint256", name: "startBlock", type: "uint256" },
+      { internalType: "uint256", name: "lockBlock", type: "uint256" },
+      { internalType: "uint256", name: "endBlock", type: "uint256" },
       { internalType: "int256", name: "lockPrice", type: "int256" },
       { internalType: "int256", name: "closePrice", type: "int256" },
-      { internalType: "uint256", name: "lockOracleId", type: "uint256" },
-      { internalType: "uint256", name: "closeOracleId", type: "uint256" },
       { internalType: "uint256", name: "totalAmount", type: "uint256" },
       { internalType: "uint256", name: "bullAmount", type: "uint256" },
       { internalType: "uint256", name: "bearAmount", type: "uint256" },
@@ -671,10 +557,18 @@ const BNBPP_ABI = [
   },
   {
     inputs: [
-      { internalType: "uint256", name: "_bufferSeconds", type: "uint256" },
-      { internalType: "uint256", name: "_intervalSeconds", type: "uint256" },
+      { internalType: "uint256", name: "_bufferBlocks", type: "uint256" },
     ],
-    name: "setBufferAndIntervalSeconds",
+    name: "setBufferBlocks",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "_intervalBlocks", type: "uint256" },
+    ],
+    name: "setIntervalBlocks",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -718,10 +612,17 @@ const BNBPP_ABI = [
     type: "function",
   },
   {
+    inputs: [{ internalType: "uint256", name: "_rewardRate", type: "uint256" }],
+    name: "setRewardRate",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
     inputs: [
-      { internalType: "uint256", name: "_treasuryFee", type: "uint256" },
+      { internalType: "uint256", name: "_treasuryRate", type: "uint256" },
     ],
-    name: "setTreasuryFee",
+    name: "setTreasuryRate",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -742,7 +643,7 @@ const BNBPP_ABI = [
   },
   {
     inputs: [],
-    name: "treasuryFee",
+    name: "treasuryRate",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",

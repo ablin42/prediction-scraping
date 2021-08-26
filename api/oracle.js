@@ -131,4 +131,16 @@ router.get("/timing", async (req, res) => {
   }
 });
 
+router.get("/one/:roundId", async (req, res) => {
+  try {
+    const roundId = "#" + parseInt(req.params.roundId);
+    const oracles = await getRoundOracle(roundId);
+
+    return res.status(200).json(oracles);
+  } catch (err) {
+    console.log("ERROR FETCHING TIMING DATA:", err, req.headers, req.ipAddress);
+    return res.status(200).json({ error: true, message: err.message });
+  }
+});
+
 module.exports = router;

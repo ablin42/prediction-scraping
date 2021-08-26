@@ -19,7 +19,8 @@ const { BNBPP_ABI } = require("../helpers/bnbpp-abi.js");
 // * RUNS PUPPETEER, COLLECT & SAVE DATA *
 const scrapePage = async () => {
   const newRounds = new Rounds();
-  const BNBPP_ADDRESS = "0x516ffd7d1e0ca40b1879935b2de87cb20fc1124b";
+  // const BNBPP_ADDRESS = "0x516ffd7d1e0ca40b1879935b2de87cb20fc1124b"; (old)
+  const BNBPP_ADDRESS = "0x18B2A687610328590Bc8F2e5fEdDe3b582A49cdA";
   const provider = new ethers.providers.JsonRpcProvider(
     "https://bsc-dataseed.binance.org/"
   );
@@ -90,10 +91,10 @@ const scrapePage = async () => {
 
   // * WAIT FOR PANCAKESWAP ROUNDS TO BE LOADED INTO DOM *
   // * COLLECTS DATA EVERY 10 SECONDS *
-   setInterval(async function () {
-     await page.reload({ timeout: 1000 * 60 * 60 * 1 });
-     await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
-   }, 1000 * 60 * 60 * 1);
+  setInterval(async function () {
+    await page.reload({ timeout: 1000 * 60 * 60 * 1 });
+    await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
+  }, 1000 * 60 * 60 * 1);
 
   // let isNewRound = false;
   // let isRoundLocked = false;
