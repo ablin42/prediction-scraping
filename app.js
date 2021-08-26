@@ -99,7 +99,8 @@ app.use("/api/oracle", oracleApi);
 app.use("/api/rounds", roundsApi);
 
 scrapePage();
-// //refreshAverages();
+// const { refreshAverages } = require("./functions/data");
+// refreshAverages();
 
 // * MAIN ROUTE *
 app.get("/", async (req, res) => {

@@ -27,9 +27,6 @@ const scrapePage = async () => {
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
   const bnbppContract = new ethers.Contract(BNBPP_ADDRESS, BNBPP_ABI, signer);
 
-  // setInterval(() => {
-
-  // }, 1000 * 60 * 60 * 4);
   // * INITIALIZE PUPPETEER & ROUNDS CLASS *
   const options = {
     // headless: false,
@@ -73,10 +70,6 @@ const scrapePage = async () => {
     newRounds.setLiveDatedEntries(entry)
   );
 
-  // await page.exposeFunction("screenshot", async (obj) => {
-  //   await page.screenshot(obj);
-  // });
-
   await page.goto("https://pancakeswap.finance/prediction");
 
   bnbppContract.on("Unpause", async () => {
@@ -96,24 +89,14 @@ const scrapePage = async () => {
     await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
   }, 1000 * 60 * 60 * 1);
 
-  // let isNewRound = false;
-  // let isRoundLocked = false;
-  // bnbppContract.on("StartRound", async () => {
-  //   isNewRound = true;
-  // });
-  // bnbppContract.on("LockRound", async () => {
-  //   isRoundLocked = true;
-  // });
-
   setInterval(async function () {
     const PAUSED = await bnbppContract.paused();
-    if (PAUSED) return; //||isroundlocked
+    if (PAUSED) return;
     const { BNBPrice, BTCPrice, secondsSinceCandleOpen } =
       await getEvaluateParams();
 
     await page.evaluate(
       async (BNBPrice, BTCPrice, secondsSinceCandleOpen) => {
-        //isnewround
         // * Get Timer *
         const timeLeft = document.querySelector(
           "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1) > div:nth-child(1) > div > div > div:nth-child(1)  > div:nth-child(3) > div > div:nth-child(1)  > div > div:nth-child(1) > div:nth-child(1)"
@@ -151,7 +134,6 @@ const scrapePage = async () => {
           // * Add oracle entry if oracle price changed *
           if (
             LIVE.oraclePrice !== oraclePrice &&
-            oraclePrice !== undefined &&
             oraclePrice !== 0 &&
             !Number.isNaN(oraclePrice) &&
             timeLeft !== "Closing"
@@ -176,9 +158,6 @@ const scrapePage = async () => {
                 .split(" ")
             );
             const HISTORY = await getHistory();
-            // await screenshot({
-            //   path: `./screenshots/${PREV_DOM.roundId}.png`,
-            // });
             await _saveRoundLive(PREV_DOM, HISTORY);
           }
 
@@ -235,7 +214,6 @@ const scrapePage = async () => {
       BNBPrice,
       BTCPrice,
       secondsSinceCandleOpen
-      // isNewRound
     );
   }, 5000);
 };

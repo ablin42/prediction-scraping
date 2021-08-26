@@ -75,7 +75,7 @@ async function addOracle({
 
 async function getAllOracle() {
   var [err, saved] = await utils.promise(Oracle.find());
-  if (err) console.log("ERROR SAVING ORACLE", err.message);
+  if (err) console.log("ERROR FETCHING ALL ORACLE", err.message);
   return saved;
 }
 

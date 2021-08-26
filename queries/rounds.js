@@ -68,17 +68,6 @@ async function addRound(
   payoutDOWN,
   history
 ) {
-  // console.log(
-  //   roundId,
-  //   payoutUP,
-  //   closePrice,
-  //   diff,
-  //   openPrice,
-  //   poolValue,
-  //   payoutDOWN,
-  //   history.length
-  // );
-  // return;
   const round = new Round({
     roundId,
     payoutUP,
