@@ -8,6 +8,7 @@ const {
   getRoundsLastHoursWithHistory,
   getRoundByTimestamp,
   getRound,
+  getLastRound,
 } = require("../queries/rounds");
 const { getRoundOracle } = require("../queries/oracle");
 const { periodToHours } = require("../functions/parser");
@@ -312,6 +313,75 @@ router.get("/simulate/:roundId", async (req, res) => {
       `ERROR FETCHING SIMULATION DATA FOR ROUND [#${req.params.roundId}]`,
       err.message
     );
+    return res.status(200).json({ error: true, message: err.message });
+  }
+});
+
+// * GET LAST WINSTREAK *
+// ? @PARAM: "roundId" => Round ID
+router.get("/winstreak", async (req, res) => {
+  try {
+    const lastRound = await getLastRound();
+    const lastRoundId = parseInt(lastRound.roundId.substr(1));
+    const direction = lastRound.diff > 0 ? "UP" : "DOWN";
+    let previousDirection = direction;
+    let winstreak = 1;
+
+    for (let i = 1; i < lastRoundId; i++) {
+      let previousRound = await getRound("#" + (lastRoundId - i));
+      previousDirection = previousRound.diff > 0 ? "UP" : "DOWN";
+      if (previousDirection !== direction) break;
+      winstreak++;
+    }
+
+    return res.status(200).json({ winstreak });
+  } catch (err) {
+    console.log(`ERROR FETCHING WINSTREAK DATA`, err.message);
+    return res.status(200).json({ error: true, message: err.message });
+  }
+});
+
+// * GET AVERAGE WINSTREAK *
+// ? @PARAM: "roundId" => Round ID
+router.get("/winstreak/average", async (req, res) => {
+  try {
+    const lastRound = await getLastRound();
+    const lastRoundId = parseInt(lastRound.roundId.substr(1));
+    let direction = lastRound.diff > 0 ? "UP" : "DOWN";
+    let previousDirection = direction;
+    let winstreak = 1;
+    const winstreakUP = [];
+    const winstreakDOWN = [];
+
+    for (let i = 1; i < lastRoundId; i++) {
+      let previousRound = await getRound("#" + (lastRoundId - i));
+      if (previousRound === null) break;
+      previousDirection = previousRound.diff > 0 ? "UP" : "DOWN";
+      if (previousDirection !== direction) {
+        if (direction === "UP") winstreakUP.push(winstreak);
+        else winstreakDOWN.push(winstreak);
+        direction = previousDirection;
+        winstreak = 0;
+      }
+      winstreak++;
+    }
+
+    const avgWinstreakUP = parseFloat(
+      (
+        winstreakUP.reduce((acc, val) => acc + val) / winstreakUP.length
+      ).toFixed(2)
+    );
+    const avgWinstreakDOWN = parseFloat(
+      (
+        winstreakDOWN.reduce((acc, val) => acc + val) / winstreakDOWN.length
+      ).toFixed(2)
+    );
+
+    return res
+      .status(200)
+      .json({ avgWinstreakUP, avgWinstreakDOWN, winstreakUP, winstreakDOWN });
+  } catch (err) {
+    console.log(`ERROR FETCHING WINSTREAK DATA`, err.message);
     return res.status(200).json({ error: true, message: err.message });
   }
 });
