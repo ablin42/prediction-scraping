@@ -91,16 +91,15 @@ async function saveOracle(DOM, infos) {
   const timestamp = +new Date();
   const secondsSinceLastOracleAdded = (timestamp - +lastOracle.date) / 1000;
 
-  if (secondsSinceLastOracleAdded > 22)
-    addOracle({
-      roundId: DOM.roundId,
-      oraclePrice: DOM.oraclePrice,
-      openPrice: DOM.openPrice,
-      BNBPrice,
-      BTCPrice,
-      secondsSinceCandleOpen,
-      timeLeft,
-    });
+  addOracle({
+    roundId: DOM.roundId,
+    oraclePrice: DOM.oraclePrice,
+    openPrice: DOM.openPrice,
+    BNBPrice,
+    BTCPrice,
+    secondsSinceCandleOpen,
+    timeLeft,
+  });
 }
 
 // * RETURNS PARAMETERS THAT WE PASS TO PUPPETEER INSTANCE *
