@@ -100,7 +100,7 @@ const scrapePage = async () => {
         // * Get Timer *
         const timeLeft = document.querySelector(
           "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1) > div:nth-child(1) > div > div > div:nth-child(1)  > div:nth-child(3) > div > div:nth-child(1)  > div > div:nth-child(1) > div:nth-child(1)"
-        ).innerHTML;
+        )?.innerHTML;
 
         // * Get Oracle Price *
         const oraclePrice = parseFloat(
@@ -108,7 +108,7 @@ const scrapePage = async () => {
             .querySelector(
               "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1)  > div:nth-child(1)  > div > div > div:nth-child(1)  > div:nth-child(1) > div > div:nth-child(2) > div:nth-child(2) "
             )
-            .innerHTML.substr(1)
+            ?.innerHTML.substr(1)
         );
 
         // * Get Live Round Data *
