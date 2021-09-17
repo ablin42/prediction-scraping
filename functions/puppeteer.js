@@ -114,7 +114,6 @@ const scrapePage = async () => {
             )
             ?.innerHTML.substr(1)
         );
-        console.log({ oraclePrice, timeLeft });
 
         // * Get Live Round Data *
         let LIVE_DOM = await _getObjectFromDOM(
