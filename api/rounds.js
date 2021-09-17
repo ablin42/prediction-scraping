@@ -9,7 +9,9 @@ const {
   getRoundByTimestamp,
   getRound,
   getLastRound,
+  getAllRounds,
 } = require("../queries/rounds");
+const { getBNBOrders } = require("../queries/binance");
 const { getRoundOracle } = require("../queries/oracle");
 const { periodToHours } = require("../functions/parser");
 // @FUNCTIONS
@@ -240,7 +242,7 @@ function getAmounts(round) {
   const filtered = round.history.filter((item) => {
     const [minutes, seconds] = item.timeLeft.split(":").map((item) => +item);
     const secondsLeft = parseInt((minutes * 60 + seconds).toFixed(0));
-    return secondsLeft <= 22 && secondsLeft > 12 && item.status === "Next";
+    return secondsLeft <= 35 && secondsLeft > 20 && item.status === "Next"; //!
   });
   const closingHistory = filtered[filtered.length - 1];
   const payoutUP = parseFloat(closingHistory.payoutUP); //.slice(0, -1)
@@ -376,12 +378,124 @@ router.get("/winstreak/average", async (req, res) => {
         winstreakDOWN.reduce((acc, val) => acc + val) / winstreakDOWN.length
       ).toFixed(2)
     );
+    const medUP = winstreakUP.sort((a, b) => (a > b ? 1 : -1))[
+      Math.round(winstreakUP.length / 2)
+    ];
+    const medDOWN = winstreakDOWN.sort((a, b) => (a > b ? 1 : -1))[
+      Math.round(winstreakDOWN.length / 2)
+    ];
 
-    return res
-      .status(200)
-      .json({ avgWinstreakUP, avgWinstreakDOWN, winstreakUP, winstreakDOWN });
+    return res.status(200).json({
+      avgWinstreakUP,
+      avgWinstreakDOWN,
+      medUP,
+      medDOWN,
+      winstreakUP,
+      winstreakDOWN,
+    });
   } catch (err) {
     console.log(`ERROR FETCHING WINSTREAK DATA`, err.message);
+    return res.status(200).json({ error: true, message: err.message });
+  }
+});
+
+async function getAvgOrders(limit) {
+  const { bids, asks } = await getBNBOrders(limit);
+  const bidMap = bids.map((bid) => {
+    return { price: bid[0], quantity: bid[1] };
+  });
+  const askMap = asks.map((ask) => {
+    return { price: ask[0], quantity: ask[1] };
+  });
+
+  let bidPriceSum = (bidQtySum = askPriceSum = askQtySum = 0);
+  for (let i = 0; i < bidMap.length; i++) {
+    bidPriceSum += +bidMap[i].price * +bidMap[i].quantity;
+    bidQtySum += +bidMap[i].quantity;
+    askPriceSum += +askMap[i].price * +askMap[i].quantity;
+    askQtySum += +askMap[i].quantity;
+  }
+  const avgBid = +(bidPriceSum / bidQtySum).toFixed(2);
+  const avgAsk = +(askPriceSum / askQtySum).toFixed(2);
+
+  return {
+    avgBid,
+    avgAsk,
+    bidPriceSum: +bidPriceSum.toFixed(0),
+    askPriceSum: +askPriceSum.toFixed(0),
+    bidQtySum,
+    askQtySum,
+  };
+}
+
+// * ORDER BOOK SHENANIGANS *
+// ? @PARAM: "roundId" => Round ID
+router.get("/orderbook/:depth", async (req, res) => {
+  try {
+    const depth = req.params.depth;
+    const { avgBid, avgAsk, bidPriceSum, askPriceSum, bidQtySum, askQtySum } =
+      await getAvgOrders(depth);
+
+    const diff = +(avgAsk - avgBid).toFixed(2);
+    const summDiff = +(askPriceSum - bidPriceSum).toFixed(2);
+    const avgPrice = +((avgAsk + avgBid) / 2).toFixed(2);
+    const test = (bidQtySum - askQtySum) / (bidQtySum + askQtySum);
+    return res.status(200).json({
+      avgBid,
+      avgAsk,
+      bidQtySum,
+      askQtySum,
+      diff,
+      summDiff,
+      avgPrice,
+      test,
+    });
+  } catch (err) {
+    console.log(`ERROR FETCHING ORDER BOOK DATA`, err.message);
+    return res.status(200).json({ error: true, message: err.message });
+  }
+});
+
+// * ORDER BOOK SHENANIGANS *
+// ? @PARAM: "roundId" => Round ID
+router.get("/esperance", async (req, res) => {
+  try {
+    // const rounds = await getRound("#555");
+
+    // console.log(rounds);
+    let dataset = [];
+    for (i = 1800; i <= 4835; i++) {
+      const round = await getRound("#" + i);
+      if (round) {
+        console.log(round.roundId);
+        const start = parseInt(round.date) - 60 * 60 * 1000;
+        const end = parseInt(round.date);
+        const entries = await getRoundByTimestamp(start, end);
+        const data = getRoundData(entries);
+        const averages = getAverages(data);
+        const safeEsperance = getEsperance(
+          averages.safePercentWr,
+          averages.riskyPercentWr,
+          averages.avgSafe,
+          10
+        );
+        const riskyEsperance = getEsperance(
+          averages.riskyPercentWr,
+          averages.safePercentWr,
+          averages.avgRisky,
+          10
+        );
+
+        dataset.push({
+          id: round.roundId,
+          safeEsperance,
+          riskyEsperance,
+        });
+      }
+    }
+    return res.status(200).json(dataset);
+  } catch (err) {
+    console.log(`ERROR FETCHING ESPERANCE DATA PER ROUND`, err.message);
     return res.status(200).json({ error: true, message: err.message });
   }
 });

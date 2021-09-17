@@ -34,6 +34,7 @@ async function getCandle(ticker) {
     console.log(`ERROR FETCHING ${ticker} CANDLE`, err);
   }
 }
+
 /*
     * getCandle response
     [
@@ -54,7 +55,21 @@ async function getCandle(ticker) {
     ]
 */
 
+// * FETCH A COIN'S ORDER BOOK *
+async function getBNBOrders(limit) {
+  try {
+    const response = await axios.get(
+      `${BINANCE_API}/depth?symbol=BNBUSDT&limit=${limit}`
+    );
+    if (response.status === 200) return response.data;
+    return false;
+  } catch (err) {
+    console.log(`ERROR FETCHING ${ticker} PRICE`, err);
+  }
+}
+
 module.exports = {
   getTickerPrice,
   getCandle,
+  getBNBOrders,
 };

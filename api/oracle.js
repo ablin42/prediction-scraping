@@ -143,4 +143,21 @@ router.get("/one/:roundId", async (req, res) => {
   }
 });
 
+router.get("/avg", async (req, res) => {
+  try {
+    const arr = [];
+    for (let i = 185; i < 279; i++) {
+      const roundId = "#" + i;
+      const oracles = await getRoundOracle(roundId);
+      arr.push(oracles.length);
+    }
+    const avg = arr.reduce((acc, val) => acc + val) / arr.length;
+
+    return res.status(200).json({ avg, arr });
+  } catch (err) {
+    console.log("ERROR FETCHING TIMING DATA:", err, req.headers, req.ipAddress);
+    return res.status(200).json({ error: true, message: err.message });
+  }
+});
+
 module.exports = router;
