@@ -123,11 +123,11 @@ function getOracleData(oracles) {
   }
 
   const average = formatAvg(
-    diffList.filter((item) => item > 20 && item < 300).reduce((a, b) => a + b) /
+    diffList.filter((item) => item > 10 && item < 300).reduce((a, b) => a + b) /
       diffList.length
   );
   const sorted = diffList
-    .filter((item) => item > 20 && item < 300)
+    .filter((item) => item > 10 && item < 300)
     .sort((a, b) => (a > b ? 1 : -1));
 
   const median = sorted[(sorted.length / 2).toFixed(0)];

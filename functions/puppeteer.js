@@ -19,7 +19,7 @@ const { BNBPP_ABI } = require("../helpers/bnbpp-abi.js");
 // * RUNS PUPPETEER, COLLECT & SAVE DATA *
 const scrapePage = async () => {
   const newRounds = new Rounds();
-  // const BNBPP_ADDRESS = "0x516ffd7d1e0ca40b1879935b2de87cb20fc1124b"; (old)
+  const REFRESH_BROWSER_TIMER = 1000 * 60 * 60 * 1;
   const BNBPP_ADDRESS = "0x18B2A687610328590Bc8F2e5fEdDe3b582A49cdA";
   const provider = new ethers.providers.JsonRpcProvider(
     "https://bsc-dataseed.binance.org/"
@@ -32,8 +32,12 @@ const scrapePage = async () => {
     // headless: false,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   };
+  // setInterval(async function () {
   const browser = await puppeteer.launch(options);
   const page = await browser.newPage();
+  // setTimeout(async () => {
+  //   await browser.close();
+  // }, REFRESH_BROWSER_TIMER - 1);
 
   // * EXPOSE FUNCTIONS FOR PUPPETEER *
   // * PARSER *
@@ -71,6 +75,7 @@ const scrapePage = async () => {
   );
 
   await page.goto("https://pancakeswap.finance/prediction");
+  await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
 
   bnbppContract.on("Unpause", async () => {
     if (await mailer(process.env.EMAIL, "Market is [ UP ]", ""))
@@ -99,17 +104,17 @@ const scrapePage = async () => {
       async (BNBPrice, BTCPrice, secondsSinceCandleOpen) => {
         // * Get Timer *
         const timeLeft = document.querySelector(
-          "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1) > div:nth-child(1) > div > div > div:nth-child(1)  > div:nth-child(3) > div > div:nth-child(1)  > div > div:nth-child(1) > div:nth-child(1)"
+          "#root > div:nth-child(2) > div:nth-child(3) > div > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1) > div > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1)  > div:nth-child(1)"
         )?.innerHTML;
-
         // * Get Oracle Price *
         const oraclePrice = parseFloat(
           document
             .querySelector(
-              "#root > div:nth-child(2) > div > div:nth-child(2) > div > div > div:nth-child(1)  > div:nth-child(1)  > div > div > div:nth-child(1)  > div:nth-child(1) > div > div:nth-child(2) > div:nth-child(2) "
+              "#root > div:nth-child(2) > div:nth-child(3) > div > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(2) > div:nth-child(2)"
             )
             ?.innerHTML.substr(1)
         );
+        console.log({ oraclePrice, timeLeft });
 
         // * Get Live Round Data *
         let LIVE_DOM = await _getObjectFromDOM(
@@ -216,6 +221,7 @@ const scrapePage = async () => {
       secondsSinceCandleOpen
     );
   }, 5000);
+  // }, REFRESH_BROWSER_TIMER);
 };
 
 module.exports = {
