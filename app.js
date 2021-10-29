@@ -8,7 +8,7 @@ require("dotenv").config();
 // @QUERIES
 const { transformToNumber } = require("./queries/rounds");
 // @FUNCTIONS
-const { scrapePage } = require("./functions/puppeteer");
+const { scrapePage, handleState } = require("./functions/puppeteer");
 // @MODELS
 // @MISC
 
@@ -98,9 +98,15 @@ const roundsApi = require("./api/rounds");
 app.use("/api/oracle", oracleApi);
 app.use("/api/rounds", roundsApi);
 
-scrapePage();
-// const { refreshAverages } = require("./functions/data");
-// refreshAverages();
+const events = require("events");
+const EMITTER = new events.EventEmitter();
+
+setInterval(async () => {
+  handleState(EMITTER);
+}, 1000 * 60 * 2);
+scrapePage(EMITTER);
+// // const { refreshAverages } = require("./functions/data");
+// // refreshAverages();
 
 // * MAIN ROUTE *
 app.get("/", async (req, res) => {
