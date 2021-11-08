@@ -1,5 +1,6 @@
 // @EXTERNALS
 const express = require("express");
+const fs = require("fs");
 const router = express.Router();
 require("dotenv").config();
 // @QUERIES
@@ -11,7 +12,7 @@ const {
   getLastRound,
   getAllRounds,
 } = require("../queries/rounds");
-const { getBNBOrders } = require("../queries/binance");
+const { getBNBOrders, getTickerPrice } = require("../queries/binance");
 const { getRoundOracle } = require("../queries/oracle");
 const { periodToHours } = require("../functions/parser");
 // @FUNCTIONS
@@ -428,6 +429,31 @@ async function getAvgOrders(limit) {
   };
 }
 
+async function cycleBook(depth) {
+  let lastPrice = await getTickerPrice("BNB");
+  let currentPrice = 0;
+  let EQ = 0;
+  setInterval(async () => {
+    console.log(lastPrice, currentPrice, EQ);
+    const correct =
+      (EQ > 0 && lastPrice < currentPrice) ||
+      (EQ < 0 && lastPrice > currentPrice);
+    const obj = { lastPrice, currentPrice, EQ, correct };
+    await fs.appendFile(
+      `./ORDER_BOOK_60S.txt`,
+      JSON.stringify(obj) + "\n",
+      (err) => {
+        if (err) console.log(err);
+      }
+    );
+    lastPrice = currentPrice;
+    const { avgBid, avgAsk, bidPriceSum, askPriceSum, bidQtySum, askQtySum } =
+      await getAvgOrders(depth);
+    EQ = (bidQtySum - askQtySum) / (bidQtySum + askQtySum);
+    currentPrice = await getTickerPrice("BNB");
+  }, 1000 * 60);
+}
+
 // * ORDER BOOK SHENANIGANS *
 // ? @PARAM: "roundId" => Round ID
 router.get("/orderbook/:depth", async (req, res) => {
@@ -439,7 +465,10 @@ router.get("/orderbook/:depth", async (req, res) => {
     const diff = +(avgAsk - avgBid).toFixed(2);
     const summDiff = +(askPriceSum - bidPriceSum).toFixed(2);
     const avgPrice = +((avgAsk + avgBid) / 2).toFixed(2);
-    const test = (bidQtySum - askQtySum) / (bidQtySum + askQtySum);
+    const EQ = (bidQtySum - askQtySum) / (bidQtySum + askQtySum);
+
+    // cycleBook(depth);
+    // return res.status(200).send("ok");
     return res.status(200).json({
       avgBid,
       avgAsk,
@@ -448,7 +477,7 @@ router.get("/orderbook/:depth", async (req, res) => {
       diff,
       summDiff,
       avgPrice,
-      test,
+      EQ,
     });
   } catch (err) {
     console.log(`ERROR FETCHING ORDER BOOK DATA`, err.message);
