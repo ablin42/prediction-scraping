@@ -117,15 +117,15 @@ const scrapePage = async (EMITTER) => {
         async (BNBPrice, BTCPrice, secondsSinceCandleOpen) => {
           // * Get Timer *
           const timeLeft = document.querySelector(
-            "#root > div:nth-child(2) > div:nth-child(3) > div > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1) > div > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1)  > div:nth-child(1)"
+            "#__next > div:nth-child(2) > div:nth-child(3) > div > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1) > div > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1) > div"
           )?.innerHTML;
           // * Get Oracle Price *
           const oraclePrice = parseFloat(
             document
               .querySelector(
-                "#root > div:nth-child(2) > div:nth-child(3) > div > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(2) > div:nth-child(2)"
+                "#__next > div:nth-child(2) > div:nth-child(3) > div > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1) > div > div:nth-child(1) > div:nth-child(1) > div > div > div:nth-child(2) > div:nth-child(2)"
               )
-              ?.innerHTML.substr(1)
+              ?.innerHTML.substring(1)
           );
 
           // * Get Live Round Data *
