@@ -117,13 +117,13 @@ const scrapePage = async (EMITTER) => {
         async (BNBPrice, BTCPrice, secondsSinceCandleOpen) => {
           // * Get Timer *
           const timeLeft = document.querySelector(
-            "#__next > div:nth-child(3) > div > div > div > div > div > div > div > div > div > div:nth-child(3) > div > div > div > div > div"
+            "#__next > div:nth-child(3) > div > div > div > div > div > div > div > div > div:nth-child(3) > div > div > div > div > div"
           )?.innerHTML;
           // * Get Oracle Price *
           const oraclePrice = parseFloat(
             document
               .querySelector(
-                "#__next > div:nth-child(3) > div > div > div > div > div > div > div > div > div > div:nth-child(1) > div > div > div:nth-child(2)"
+                "#__next > div:nth-child(3) > div > div > div > div > div > div > div > div > div > div > div:nth-child(3) > div:nth-child(2)"
               )
               ?.innerHTML.substring(1)
           );
