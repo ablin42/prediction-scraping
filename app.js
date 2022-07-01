@@ -67,6 +67,8 @@ app.use(function (req, res, next) {
     "https://cucksistants.herokuapp.com",
     "http://127.0.0.1:5500",
     "https://bestbetsbot.herokuapp.com",
+    "https://www.bullvsbear.pro/",
+    "bullvsbear.pro",
   ];
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin))
@@ -105,6 +107,8 @@ setInterval(async () => {
   handleState(EMITTER);
 }, 1000 * 60 * 2);
 scrapePage(EMITTER);
+
+// ! Danger, fully refreshes averages
 // // const { refreshAverages } = require("./functions/data");
 // // refreshAverages();
 
