@@ -97,7 +97,7 @@ const scrapePage = async (EMITTER) => {
       newRounds.setLiveDatedEntries(entry)
     );
 
-    await page.goto("https://pancakeswap.finance/prediction");
+    await page.goto("https://pancakeswap.finance/prediction?token=BNB");
     await page.waitForSelector(".swiper-slide-active", { timeout: 0 });
 
     // * WAIT FOR PANCAKESWAP ROUNDS TO BE LOADED INTO DOM *
