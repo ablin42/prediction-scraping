@@ -72,7 +72,16 @@ const getObjectFromDOM = async (DOM) => {
     payoutDOWN,
   ] = DOM;
 
-  if (status === "Next" || status === "Later" || status === "Calculating")
+  if (
+    status === "Next" ||
+    status === "Later" ||
+    status === "Calculating" ||
+    !payoutUP ||
+    !payoutDOWN ||
+    !poolValue ||
+    !openPrice ||
+    !diff
+  )
     return { status };
 
   return {
@@ -91,6 +100,8 @@ const getObjectFromDOM = async (DOM) => {
 const getNextFromDom = async (DOM) => {
   const [status, roundId, , payoutUP, , , , poolValue, , , , , payoutDOWN] =
     DOM;
+
+  if (!payoutUP || !payoutDOWN || !poolValue) return { status };
 
   return {
     status,
