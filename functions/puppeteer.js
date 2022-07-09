@@ -118,14 +118,14 @@ const scrapePage = async (EMITTER) => {
           // * Get Timer *
           const timeLeft = document.querySelector(
             "#__next > div:nth-child(3) > div > div > div > div > div > div > div > div > div:nth-child(3) > div > div > div > div > div"
-          )?.innerHTML;
+          )?.innerText;
           // * Get Oracle Price *
           const oraclePrice = parseFloat(
             document
               .querySelector(
                 "#__next > div:nth-child(3) > div > div > div > div > div > div > div > div > div > div > div:nth-child(3) > div:nth-child(2)"
               )
-              ?.innerHTML.substring(1)
+              ?.innerText.substring(1)
           );
 
           // * Get Live Round Data *
@@ -154,13 +154,24 @@ const scrapePage = async (EMITTER) => {
               oraclePrice !== 0 &&
               !Number.isNaN(oraclePrice) &&
               timeLeft !== "Closing"
-            )
+            ) {
               await _saveOracle(LIVE_DOM, {
                 BNBPrice,
                 BTCPrice,
                 timeLeft,
                 secondsSinceCandleOpen,
               });
+            } else if (
+              !oraclePrice ||
+              Number.isNaN(oraclePrice) ||
+              oraclePrice === 0
+            ) {
+              console.log("Saving Oracle Criteria not met", {
+                liveOracle: LIVE.oraclePrice,
+                oraclePrice,
+                timeLeft,
+              });
+            }
 
             // * Save LIVE round that just closed to DATABASE *
             if (
@@ -176,6 +187,11 @@ const scrapePage = async (EMITTER) => {
               );
               const HISTORY = await getHistory();
               await _saveRoundLive(PREV_DOM, HISTORY);
+            } else if (!LIVE_DOM.roundId || !LIVE.roundId) {
+              console.log("Saving LIVE round criteria not met", {
+                liveDOMRound: LIVE_DOM.roundId,
+                liveRound: LIVE.roundId,
+              });
             }
 
             // * Save Next Round data to Class*
