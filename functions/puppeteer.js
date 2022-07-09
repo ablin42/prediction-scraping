@@ -236,14 +236,14 @@ const scrapePage = async (EMITTER) => {
       );
     }, 5000);
 
-    EMITTER.on("kill", () => {
-      if (!running) return;
-      browser.close();
-      clearInterval(loop);
-      clearInterval(reloadLoop);
-      running = false;
-      console.log("Killed browser");
-    });
+    // EMITTER.on("kill", () => {
+    //   if (!running) return;
+    //   browser.close();
+    //   clearInterval(loop);
+    //   clearInterval(reloadLoop);
+    //   running = false;
+    //   console.log("Killed browser");
+    // });
   } catch (err) {
     console.log("ERROR:", err.message);
     return;

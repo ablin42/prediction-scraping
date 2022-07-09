@@ -103,9 +103,9 @@ app.use("/api/rounds", roundsApi);
 const events = require("events");
 const EMITTER = new events.EventEmitter();
 
-setInterval(async () => {
-  handleState(EMITTER);
-}, 1000 * 60 * 2);
+// setInterval(async () => {
+//   handleState(EMITTER);
+// }, 1000 * 60 * 2);
 scrapePage(EMITTER);
 
 // ! Danger, fully refreshes averages
