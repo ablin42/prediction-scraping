@@ -91,6 +91,15 @@ async function saveOracle(DOM, infos) {
   const timestamp = +new Date();
   const secondsSinceLastOracleAdded = (timestamp - +lastOracle.date) / 1000;
 
+  console.log("saving oracle", {
+    roundId: DOM.roundId,
+    oraclePrice: DOM.oraclePrice,
+    openPrice: DOM.openPrice,
+    BNBPrice,
+    BTCPrice,
+    secondsSinceCandleOpen,
+    timeLeft,
+  });
   if (secondsSinceLastOracleAdded > 6)
     addOracle({
       roundId: DOM.roundId,

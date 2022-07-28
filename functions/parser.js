@@ -1,6 +1,3 @@
-// @MISC
-const { RANGE_OPTIONS } = require("../constants");
-
 // * PARSES DIFF *
 const _diff = function (value) {
   return parseFloat(value.substr(1).replace(",", "."));
@@ -38,16 +35,6 @@ const getWinningPayout = function (diff, payoutUP, payoutDOWN) {
 // * CHECKS ROUND STATUS *
 const isExpired = function (status) {
   return status === "Expired";
-};
-
-// * CONVERTS STRING PERIOD INTO HOURS *
-const periodToHours = function (period) {
-  const periodKey = Object.keys(RANGE_OPTIONS).filter((key) => {
-    return key === period;
-  });
-  if (periodKey.length <= 0) return 2;
-
-  return RANGE_OPTIONS[periodKey[0]];
 };
 
 // * RETURNS AN OBJECT WITH NEEDED DATA *

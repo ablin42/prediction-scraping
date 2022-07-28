@@ -5,8 +5,6 @@ const expressSanitizer = require("express-sanitizer");
 const sanitize = require("mongo-sanitize");
 const path = require("path");
 require("dotenv").config();
-// @QUERIES
-const { transformToNumber } = require("./queries/rounds");
 // @FUNCTIONS
 const { scrapePage, handleState } = require("./functions/puppeteer");
 // @MODELS
@@ -63,10 +61,8 @@ app.use(function (req, res, next) {
   // * ALLOWED ORIGINS *
   const allowedOrigins = [
     "https://pcsdata.herokuapp.com",
-    "http://localhost:3000",
-    "https://cucksistants.herokuapp.com",
-    "http://127.0.0.1:5500",
     "https://bestbetsbot.herokuapp.com",
+    "https://pcs-prediction-api.herokuapp.com/",
     "https://www.bullvsbear.pro",
     "bullvsbear.pro",
   ];
@@ -94,31 +90,18 @@ app.use(function (req, res, next) {
 
 app.use(expressSanitizer());
 
-// * API ROUTES *
-const oracleApi = require("./api/oracle");
-const roundsApi = require("./api/rounds");
-app.use("/api/oracle", oracleApi);
-app.use("/api/rounds", roundsApi);
-
 const events = require("events");
 const EMITTER = new events.EventEmitter();
 
-// setInterval(async () => {
-//   handleState(EMITTER);
-// }, 1000 * 60 * 2);
+setInterval(async () => {
+  handleState(EMITTER);
+}, 1000 * 60 * 2);
 scrapePage(EMITTER);
-
-// ! Danger, fully refreshes averages
-// // const { refreshAverages } = require("./functions/data");
-// // refreshAverages();
 
 // * MAIN ROUTE *
 app.get("/", async (req, res) => {
   try {
-    return res.status(200).send("paused");
-
-    // const result = await transformToNumber();
-    // return res.status(200).json(result);
+    return res.status(200).send("OK");
   } catch (err) {
     console.log("HOME ROUTE ERROR:", err, req.headers, req.ipAddress);
     return res.status(200).send("404");

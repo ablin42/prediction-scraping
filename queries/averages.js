@@ -25,44 +25,6 @@ async function incrementTotalAverage({
   return averages;
 }
 
-// * FILL AVERAGE ENTRY WITH NEW VALUES *
-// ! This WILL override all the data, be careful
-async function updateTotalAverage({
-  totalPayout,
-  totalDiff,
-  totalPool,
-  nbEntries,
-  totalPayoutUP,
-  nbRoundUP,
-  totalPayoutDOWN,
-  nbRoundDOWN,
-  riskyTotalPayout,
-  riskyWins,
-  safeWins,
-  safeTotalPayout,
-}) {
-  const [err, averages] = await utils.promise(
-    Average.findByIdAndUpdate(AVERAGE_ID, {
-      totalPayout,
-      totalDiff,
-      totalPool,
-      nbEntries,
-      totalPayoutUP,
-      nbRoundUP,
-      totalPayoutDOWN,
-      nbRoundDOWN,
-      riskyTotalPayout,
-      riskyWins,
-      safeWins,
-      safeTotalPayout,
-    })
-  );
-  if (err)
-    console.log("AN ERROR OCCURED WHILE SAVING ALL AVERAGES", err.message);
-  return averages;
-}
-
 module.exports = {
   incrementTotalAverage,
-  updateTotalAverage,
 };

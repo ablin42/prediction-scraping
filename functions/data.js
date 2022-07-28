@@ -1,23 +1,7 @@
-// @QUERIES
-const { getAllRounds } = require("../queries/rounds");
-const { updateTotalAverage } = require("../queries/averages");
 // @FUNCTIONS
 const { getWinningPayout } = require("./parser");
 // @CLASSES
 const { TotalAverages } = require("../classes/average");
-
-// * REFRESH AVERAGES BY COMPUTING EVERY ROUND, EVER *
-async function refreshAverages() {
-  const rounds = await getAllRounds();
-  const data = getRoundData(rounds);
-  await updateTotalAverage(data);
-
-  setInterval(async () => {
-    const rounds = await getAllRounds();
-    const data = getRoundData(rounds);
-    await updateTotalAverage(data);
-  }, 1000 * 60 * 15); // ? 15 minutes
-}
 
 // * COMPUTES AVERAGES AND RISK DATA FROM ENTRIES *
 // ? @PARAM: entries => An array containing rounds
