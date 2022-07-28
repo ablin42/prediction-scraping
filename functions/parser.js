@@ -106,7 +106,6 @@ module.exports = {
   getWinningPayout,
   isExpired,
   getParsedData,
-  periodToHours,
   getObjectFromDOM,
   getNextFromDom,
 };
