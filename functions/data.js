@@ -227,7 +227,6 @@ function getEsperance(pWin, pLose, win, betAmount) {
 
 module.exports = {
   formatAvg,
-  refreshAverages,
   groupByHour,
   getPercentage,
   getRoundData,
