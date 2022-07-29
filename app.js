@@ -1,4 +1,5 @@
 // @EXTERNALS
+const https = require("https");
 const express = require("express");
 const mongoose = require("mongoose");
 const expressSanitizer = require("express-sanitizer");
@@ -95,6 +96,7 @@ const EMITTER = new events.EventEmitter();
 
 setInterval(async () => {
   handleState(EMITTER);
+  https.get("https://pcs-prediction-api.herokuapp.com/api/oracle/timing");
 }, 1000 * 60 * 2);
 scrapePage(EMITTER);
 
